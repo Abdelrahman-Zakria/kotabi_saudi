@@ -29,26 +29,24 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks! :linkage => :static
-  # Disabled use_modular_headers! as it often causes issues with AdMob non-modular headers
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
-  # Apply fix to the whole Pods project
-  installer.pods_project.build_configurations.each do |config|
-    config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-  end
-
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
 
     target.build_configurations.each do |config|
-      # Force the setting on every target
+      # Global fixes for non-modular headers and latest Xcode standards
       config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-
-      # Ensure minimum deployment target is met
+      config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+
+      # Disable module definition for google_mobile_ads to bypass modular header restrictions
+      if target.name.include? 'google_mobile_ads'
+        config.build_settings['DEFINES_MODULE'] = 'NO'
+      end
     end
   end
 end
