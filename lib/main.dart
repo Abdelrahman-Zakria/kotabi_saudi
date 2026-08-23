@@ -16,6 +16,8 @@ import 'package:kotabi_saudi/core/services/ad_service.dart';
 import 'package:kotabi_saudi/core/services/iap_service.dart';
 import 'package:kotabi_saudi/features/home/domain/repositories/educational_repository.dart';
 import 'package:kotabi_saudi/features/home/data/repositories/educational_repository_impl.dart';
+import 'package:kotabi_saudi/features/tahderi/domain/repositories/tahderi_repository.dart';
+import 'package:kotabi_saudi/features/tahderi/data/repositories/tahderi_repository_impl.dart';
 import 'package:kotabi_saudi/features/home/presentation/screens/home/home_page.dart';
 
 final sl = GetIt.instance;
@@ -77,6 +79,10 @@ void main() async {
     
     sl.registerLazySingleton<EducationalRepository>(
       () => EducationalRepositoryImpl(FirebaseFirestore.instance)
+    );
+
+    sl.registerLazySingleton<TahderiRepository>(
+      () => TahderiRepositoryImpl(FirebaseFirestore.instance)
     );
 
     await Alarm.init();

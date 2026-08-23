@@ -163,7 +163,7 @@ class _HomeContent extends StatelessWidget {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      height: 220,
+      padding: const EdgeInsets.only(bottom: 30),
       decoration: const BoxDecoration(
         gradient: AppTheme.primaryGradient,
         borderRadius: BorderRadius.only(
@@ -173,28 +173,24 @@ class _HomeContent extends StatelessWidget {
       ),
       child: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Image.asset('assets/logo.png', height: 60),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "تطبيق كتبي",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Container(
+              margin: const EdgeInsets.only(top: 20),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Image.asset('assets/logo.png', height: 60),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "تطبيق كتبي",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
