@@ -1,0 +1,75 @@
+name: kotabi_saudi
+description: "Educational App for Saudi Curriculums"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Firebase
+  firebase_core: ^4.13.0
+  cloud_firestore: ^6.8.0
+  firebase_messaging: ^16.5.0
+
+  # State Management & DI
+  flutter_bloc: ^9.1.1
+  get_it: ^9.2.1
+  equatable: ^2.0.7
+
+  # UI & Media
+  google_fonts: ^8.2.1
+  flutter_svg: ^2.0.17
+  cached_network_image: ^3.4.1
+  syncfusion_flutter_pdfviewer: ^34.2.4
+
+  # Services & Utils
+  shared_preferences: ^2.5.3
+  url_launcher: ^6.3.1
+  path_provider: ^2.1.5
+  intl: ^0.20.3
+  share_plus: ^13.3.0
+
+  # Alarms & Notifications
+  alarm: ^5.10.0
+  flutter_local_notifications: ^22.3.0
+  timezone: ^0.11.1
+  flutter_timezone: ^5.1.0
+  flutter_native_splash: ^2.4.8
+
+  # Ads
+  google_mobile_ads: ^9.1.0
+  app_tracking_transparency: ^2.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
+  adaptive_icon_background: "assets/logo.png"
+  adaptive_icon_foreground: "assets/logo.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  background_image: "assets/logo.png"
+  android_12:
+    background_image: "assets/logo.png"
+  fullscreen: true
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/logo.png
+    - assets/tahderi.png
+    - assets/
