@@ -31,15 +31,15 @@ class AdService {
   static const String testIosInterstitialId = 'ca-app-pub-3940256099942544/4411468910';
   static const String testIosAppOpenId = 'ca-app-pub-3940256099942544/5575463023';
 
-  // IDs for Android (Updated with provided keys)
-  static const String androidBannerId = 'ca-app-pub-3940256099942544/6300978111'; // Placeholder test banner
+  // IDs for Android
+  static const String androidBannerId = 'ca-app-pub-3940256099942544/6300978111'; // Using test banner as no production banner ID was provided
   static const String androidInterstitialId = 'ca-app-pub-8776534633121497/8567732603';
   static const String androidAppOpenId = 'ca-app-pub-8776534633121497/8441252864';
 
-  // IDs for iOS (Placeholder test IDs as none provided)
-  static const String iosBannerId = 'ca-app-pub-3940256099942544/2934735716';
-  static const String iosInterstitialId = 'ca-app-pub-3940256099942544/4411468910';
-  static const String iosAppOpenId = 'ca-app-pub-3940256099942544/5575463023';
+  // IDs for iOS
+  static const String iosBannerId = 'ca-app-pub-3940256099942544/2934735716'; // Using test banner
+  static const String iosInterstitialId = 'ca-app-pub-8776534633121497/8567732603';
+  static const String iosAppOpenId = 'ca-app-pub-8776534633121497/8441252864';
 
   String get bannerAdUnitId {
     if (useTestAds) return Platform.isAndroid ? testAndroidBannerId : testIosBannerId;
