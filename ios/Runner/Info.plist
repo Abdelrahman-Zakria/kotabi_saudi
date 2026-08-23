@@ -26,18 +26,15 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
-		<key>NSUserNotificationUsageDescription</key>
-		<string>التطبيق يحتاج إلى إذن لإرسال تنبيهات المذاكرة.</string>
 		<key>UIBackgroundModes</key>
 		<array>
-			<string>fetch</string>
 			<string>remote-notification</string>
-			<string>audio</string>
 		</array>
-		<key>NSAppleMusicUsageDescription</key>
-		<string>التطبيق يحتاج الوصول إلى ملفات الصوت لتشغيل منبه المذاكرة.</string>
-		<key>FirebaseAppDelegateProxyEnabled</key>
-		<false/>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<true/>
+		</dict>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>
