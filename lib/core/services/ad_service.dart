@@ -151,6 +151,8 @@ class AdService {
 
   // --- Banner Ad ---
   BannerAd? createBannerAd() {
+    return null; // Temporarily disabled
+    /*
     if (IapService().isAdFree) return null;
     return BannerAd(
       adUnitId: bannerAdUnitId,
@@ -164,6 +166,7 @@ class AdService {
         },
       ),
     );
+    */
   }
 
   // --- Interstitial Ad ---

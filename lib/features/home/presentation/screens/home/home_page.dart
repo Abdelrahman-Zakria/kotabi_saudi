@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadBannerAd();
+    // _loadBannerAd(); // Temporarily disabled
   }
 
   void _loadBannerAd() {
@@ -70,6 +70,7 @@ class _HomePageState extends State<HomePage> {
           body: Column(
             children: [
               Expanded(child: pages[_currentIndex]),
+              /*
               if (_isBannerAdLoaded && _bannerAd != null)
                 Container(
                   color: Colors.white,
@@ -83,6 +84,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+              */
             ],
           ),
           bottomNavigationBar: CustomBottomNav(
