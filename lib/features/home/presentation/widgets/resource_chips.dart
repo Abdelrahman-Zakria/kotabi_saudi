@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kotabi_saudi/features/home/domain/entities/educational_node.dart';
+import '../screens/pdf_viewer/pdf_viewer_page.dart';
 
 class ResourceChips extends StatelessWidget {
   final List<Resource> resources;
@@ -26,12 +27,14 @@ class ResourceChips extends StatelessWidget {
     String label;
     Color color;
 
+    final bool isPdf = res.type == 'pdf' || res.type == 'pdf_viewer' || res.type == 'pdf_direct';
+
     if (res.type == 'external_link') {
       icon = Icons.open_in_new;
       label = res.url.contains('ien.edu.sa') ? 'بوابة عين' : 
               res.url.contains('madrasati.sa') ? 'منصة مدرستي' : 'رابط خارجي';
       color = Colors.teal;
-    } else if (res.type == 'pdf_viewer' || res.type == 'pdf_direct') {
+    } else if (isPdf) {
       icon = Icons.picture_as_pdf;
       label = 'عرض PDF';
       color = Colors.red.shade700;
@@ -50,7 +53,25 @@ class ResourceChips extends StatelessWidget {
       label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
       backgroundColor: color,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      onPressed: () => _launchURL(context, res.url),
+      onPressed: () {
+        if (isPdf) {
+          _openPdf(context, res.url, label);
+        } else {
+          _launchURL(context, res.url);
+        }
+      },
+    );
+  }
+
+  void _openPdf(BuildContext context, String url, String title) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfViewerPage(
+          url: url,
+          title: title,
+        ),
+      ),
     );
   }
 
