@@ -7,6 +7,7 @@ import 'package:kotabi_saudi/core/services/local_storage_service.dart';
 import 'package:kotabi_saudi/features/home/domain/repositories/educational_repository.dart';
 import 'package:kotabi_saudi/features/home/domain/entities/educational_node.dart';
 import 'package:kotabi_saudi/features/home/presentation/widgets/resource_chips.dart';
+import 'package:kotabi_saudi/core/services/ad_service.dart';
 import 'cubit/content_cubit.dart';
 import 'cubit/content_state.dart';
 
@@ -29,7 +30,7 @@ class ContentPage extends StatelessWidget {
   }
 }
 
-class ContentView extends StatelessWidget {
+class ContentView extends StatefulWidget {
   final EducationalNode? node;
   final String parentId;
   final String title;
@@ -37,20 +38,38 @@ class ContentView extends StatelessWidget {
   const ContentView({super.key, this.node, required this.parentId, required this.title});
 
   @override
+  State<ContentView> createState() => _ContentViewState();
+}
+
+class _ContentViewState extends State<ContentView> {
+  @override
+  void initState() {
+    super.initState();
+    _showAdIfNecessary();
+  }
+
+  void _showAdIfNecessary() {
+    final hasContent = widget.node?.resources.isNotEmpty ?? false;
+    if (hasContent && sl.isRegistered<AdService>()) {
+      sl<AdService>().showInterstitialAd(onAdDismissed: () {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final pdfResource = node?.resources.where((r) => r.type == 'pdf_viewer' || r.type == 'pdf_direct').firstOrNull;
-    final otherResources = node?.resources.where((r) => r.type != 'pdf_viewer' && r.type != 'pdf_direct').toList() ?? [];
+    final pdfResource = widget.node?.resources.where((r) => r.type == 'pdf_viewer' || r.type == 'pdf_direct').firstOrNull;
+    final otherResources = widget.node?.resources.where((r) => r.type != 'pdf_viewer' && r.type != 'pdf_direct').toList() ?? [];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(node?.title ?? title),
+        title: Text(widget.node?.title ?? widget.title),
         actions: [
-          if (node != null)
+          if (widget.node != null)
             BlocBuilder<ContentCubit, ContentState>(
               builder: (context, state) {
                 return IconButton(
                   icon: Icon(state.isFavorite ? Icons.favorite : Icons.favorite_border, color: state.isFavorite ? Colors.red : Colors.white),
-                  onPressed: () => context.read<ContentCubit>().toggleFavorite(node!),
+                  onPressed: () => context.read<ContentCubit>().toggleFavorite(widget.node!),
                 );
               },
             ),
@@ -58,7 +77,7 @@ class ContentView extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.download),
               onPressed: () {
-                context.read<ContentCubit>().addToLibrary(node!);
+                context.read<ContentCubit>().addToLibrary(widget.node!);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تمت الإضافة إلى التنزيلات")));
               },
             ),
@@ -81,7 +100,7 @@ class ContentView extends StatelessWidget {
   }
 
   Widget _buildBreadcrumbs() {
-    if (node == null || node!.breadcrumbs.isEmpty) return const SizedBox();
+    if (widget.node == null || widget.node!.breadcrumbs.isEmpty) return const SizedBox();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -89,7 +108,7 @@ class ContentView extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: node!.breadcrumbs.map((b) => Text("${b.title} » ", style: const TextStyle(fontSize: 11, color: AppTheme.subTextColor))).toList(),
+          children: widget.node!.breadcrumbs.map((b) => Text("${b.title} » ", style: const TextStyle(fontSize: 11, color: AppTheme.subTextColor))).toList(),
         ),
       ),
     );
@@ -107,10 +126,10 @@ class ContentView extends StatelessWidget {
         }
         if (state is ContentLoaded) {
           if (state.items.isEmpty) {
-             if (node != null && node!.description.isNotEmpty) {
+             if (widget.node != null && widget.node!.description.isNotEmpty) {
                return SingleChildScrollView(
                  padding: const EdgeInsets.all(16),
-                 child: Text(node!.description, style: const TextStyle(height: 1.6, color: AppTheme.textColor)),
+                 child: Text(widget.node!.description, style: const TextStyle(height: 1.6, color: AppTheme.textColor)),
                );
              }
              return const Center(child: Text("لا توجد محتويات"));

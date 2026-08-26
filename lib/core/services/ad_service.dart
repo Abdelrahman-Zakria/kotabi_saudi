@@ -32,12 +32,12 @@ class AdService {
   static const String testIosAppOpenId = 'ca-app-pub-3940256099942544/5575463023';
 
   // IDs for Android
-  static const String androidBannerId = 'ca-app-pub-3940256099942544/6300978111'; // Using test banner as no production banner ID was provided
+  static const String androidBannerId = 'ca-app-pub-8776534633121497/3117135380';
   static const String androidInterstitialId = 'ca-app-pub-8776534633121497/8567732603';
   static const String androidAppOpenId = 'ca-app-pub-8776534633121497/8441252864';
 
   // IDs for iOS
-  static const String iosBannerId = 'ca-app-pub-3940256099942544/2934735716'; // Using test banner
+  static const String iosBannerId = 'ca-app-pub-8776534633121497/2859095021';
   static const String iosInterstitialId = 'ca-app-pub-8776534633121497/8567732603';
   static const String iosAppOpenId = 'ca-app-pub-8776534633121497/8441252864';
 
@@ -61,6 +61,18 @@ class AdService {
       dev.log('User is ad-free, skipping MobileAds init');
       return;
     }
+
+    // Listen for ad-free status changes
+    IapService().adFreeStatusStream.listen((isAdFree) {
+      if (isAdFree) {
+        _periodicAdTimer?.cancel();
+        _appOpenAd?.dispose();
+        _appOpenAd = null;
+        _interstitialAd?.dispose();
+        _interstitialAd = null;
+        dev.log('Ad-free enabled: Cleared all ads and timers');
+      }
+    });
 
     if (Platform.isIOS) {
       try {
@@ -151,8 +163,6 @@ class AdService {
 
   // --- Banner Ad ---
   BannerAd? createBannerAd() {
-    return null; // Temporarily disabled
-    /*
     if (IapService().isAdFree) return null;
     return BannerAd(
       adUnitId: bannerAdUnitId,
@@ -166,7 +176,6 @@ class AdService {
         },
       ),
     );
-    */
   }
 
   // --- Interstitial Ad ---

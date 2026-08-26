@@ -30,25 +30,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("Handling a background message: ${message.messageId}");
 }
 
-class AdNavigationObserver extends NavigatorObserver {
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPush(route, previousRoute);
-    // Don't show on the very first route (usually '/')
-    if (previousRoute != null && sl.isRegistered<AdService>()) {
-      sl<AdService>().showInterstitialAd(onAdDismissed: () {});
-    }
-  }
-
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPop(route, previousRoute);
-    if (sl.isRegistered<AdService>()) {
-      sl<AdService>().showInterstitialAd(onAdDismissed: () {});
-    }
-  }
-}
-
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
@@ -137,7 +118,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,
-        navigatorObservers: [AdNavigationObserver()],
         title: 'كتبي السعودية',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,

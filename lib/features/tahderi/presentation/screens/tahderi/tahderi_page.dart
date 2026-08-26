@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kotabi_saudi/main.dart';
+import 'package:kotabi_saudi/core/services/ad_service.dart';
 import 'package:kotabi_saudi/features/home/domain/entities/educational_node.dart';
 import 'package:kotabi_saudi/features/tahderi/domain/repositories/tahderi_repository.dart';
 import 'package:kotabi_saudi/features/tahderi/presentation/widgets/tahderi_subject_card.dart';
@@ -48,6 +49,15 @@ class _TahderiPageState extends State<TahderiPage> {
       debugPrint("Tahderi Load Error: $e");
     } finally {
       setState(() => _isLoading = false);
+      _showAdIfNecessary();
+    }
+  }
+
+  void _showAdIfNecessary() {
+    // Show ad if it's a final leaf (any item in list has resources)
+    final isLeaf = _items.any((n) => n.resources.isNotEmpty);
+    if (isLeaf && sl.isRegistered<AdService>()) {
+      sl<AdService>().showInterstitialAd(onAdDismissed: () {});
     }
   }
 

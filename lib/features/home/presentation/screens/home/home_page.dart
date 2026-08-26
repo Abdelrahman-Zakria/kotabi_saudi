@@ -13,6 +13,7 @@ import 'package:kotabi_saudi/features/home/presentation/screens/notifications/no
 import 'package:kotabi_saudi/features/tahderi/presentation/screens/tahderi/tahderi_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:kotabi_saudi/core/services/ad_service.dart';
+import 'package:kotabi_saudi/core/services/iap_service.dart';
 import 'cubit/home_cubit.dart';
 import 'cubit/home_state.dart';
 
@@ -70,21 +71,6 @@ class _HomePageState extends State<HomePage> {
           body: Column(
             children: [
               Expanded(child: pages[_currentIndex]),
-              /*
-              if (_isBannerAdLoaded && _bannerAd != null)
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: SafeArea(
-                    top: false,
-                    child: SizedBox(
-                      width: _bannerAd!.size.width.toDouble(),
-                      height: _bannerAd!.size.height.toDouble(),
-                      child: AdWidget(ad: _bannerAd!),
-                    ),
-                  ),
-                ),
-              */
             ],
           ),
           bottomNavigationBar: CustomBottomNav(
@@ -130,6 +116,8 @@ class _HomeContent extends StatelessWidget {
             children: [
               _buildHeader(),
               _buildTahderiButton(),
+              _buildAdFreeButton(),
+              _buildRestoreButton(),
               _buildFilters(context),
               Expanded(
                 child: SingleChildScrollView(
@@ -273,6 +261,80 @@ class _HomeContent extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAdFreeButton() {
+    return StreamBuilder<bool>(
+      stream: sl<IapService>().adFreeStatusStream,
+      initialData: sl<IapService>().isAdFree,
+      builder: (context, snapshot) {
+        if (snapshot.data == true) return const SizedBox.shrink();
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: InkWell(
+            onTap: () => sl<IapService>().buyAdRemoval(),
+            borderRadius: BorderRadius.circular(15),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade100,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.amber.shade700, width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: Colors.amber.shade900),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "إزالة الإعلانات للأبد",
+                          style: TextStyle(
+                            color: Colors.amber.shade900,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text(
+                          "تصفح التطبيق بدون أي إزعاج مقابل 3\$ فقط",
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios, color: Colors.amber.shade900, size: 16),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRestoreButton() {
+    return StreamBuilder<bool>(
+      stream: sl<IapService>().adFreeStatusStream,
+      initialData: sl<IapService>().isAdFree,
+      builder: (context, snapshot) {
+        if (snapshot.data == true) return const SizedBox.shrink();
+        return Center(
+          child: TextButton(
+            onPressed: () => sl<IapService>().restorePurchases(),
+            child: const Text(
+              "استعادة المشتريات",
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ),
+        );
+      },
     );
   }
 

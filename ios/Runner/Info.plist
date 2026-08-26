@@ -26,34 +26,8 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
-		<key>UIApplicationSceneManifest</key>
-		<dict>
-			<key>UIApplicationSupportsMultipleScenes</key>
-			<false/>
-			<key>UISceneConfigurations</key>
-			<dict>
-				<key>UIWindowSceneSessionRoleApplication</key>
-				<array>
-					<dict>
-						<key>UISceneClassName</key>
-						<string>UIWindowScene</string>
-						<key>UISceneConfigurationName</key>
-						<string>flutter</string>
-						<key>UISceneDelegateClassName</key>
-						<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-						<key>UISceneStoryboardFile</key>
-						<string>Main</string>
-					</dict>
-				</array>
-			</dict>
-		</dict>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
-		<key>LSApplicationQueriesSchemes</key>
-		<array>
-			<string>https</string>
-			<string>http</string>
-		</array>
 		<key>UILaunchStoryboardName</key>
 		<string>LaunchScreen</string>
 		<key>UIMainStoryboardFile</key>
@@ -66,7 +40,7 @@
 		</array>
 		<key>UISupportedInterfaceOrientations~ipad</key>
 		<array>
-			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientation portrait</string>
 			<string>UIInterfaceOrientationPortraitUpsideDown</string>
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
@@ -76,13 +50,27 @@
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>remote-notification</string>
+			<string>audio</string>
+		</array>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>mailto</string>
+			<string>itms-apps</string>
 		</array>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
+		<false/>
+		<key>FirebaseAppDelegateProxyEnabled</key>
 		<false/>
 		<key>GADApplicationIdentifier</key>
 		<string>ca-app-pub-8776534633121497~1065430921</string>
 		<key>NSUserTrackingUsageDescription</key>
 		<string>هذا المعرف سيستخدم لتقديم إعلانات مخصصة لك.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>نحتاج للوصول إلى موقعك لتحسين تجربة المستخدم وتقديم محتوى محلي.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>نحتاج للوصول إلى الميكروفون لتشغيل المنبهات والتنبيهات الصوتية.</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>SKAdNetworkItems</key>
 		<array>
 			<dict>
