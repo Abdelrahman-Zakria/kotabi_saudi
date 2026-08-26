@@ -112,36 +112,30 @@ class _HomeContent extends StatelessWidget {
         extendBodyBehindAppBar: true,
         body: Directionality(
           textDirection: TextDirection.rtl,
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildTahderiButton(),
-              _buildAdFreeButton(),
-              _buildRestoreButton(),
-              _buildFilters(context),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        child: Text(
-                          "المراحل الدراسية",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textColor,
-                          ),
-                        ),
-                      ),
-                      _buildGradesGrid(),
-                      const SizedBox(height: 20),
-                    ],
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                _buildTahderiButton(),
+                _buildAdFreeButton(),
+                _buildRestoreButton(),
+                _buildFilters(context),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Text(
+                    "المراحل الدراسية",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textColor,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                _buildGradesGrid(),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -274,7 +268,12 @@ class _HomeContent extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: InkWell(
-            onTap: () => sl<IapService>().buyAdRemoval(),
+            onTap: () async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("جاري الاتصال بالمتجر..."), duration: Duration(seconds: 2)),
+              );
+              await sl<IapService>().buyAdRemoval();
+            },
             borderRadius: BorderRadius.circular(15),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
