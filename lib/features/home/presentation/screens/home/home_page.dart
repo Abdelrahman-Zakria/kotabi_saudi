@@ -65,7 +65,7 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return BlocProvider(
-      create: (context) => HomeCubit(sl<EducationalRepository>()),
+      create: (context) => HomeCubit(sl<EducationalRepository>())..loadGrades(),
       child: Builder(
         builder: (context) => Scaffold(
           body: Column(
@@ -270,7 +270,9 @@ class _HomeContent extends StatelessWidget {
           child: InkWell(
             onTap: () async {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("جاري الاتصال بالمتجر..."), duration: Duration(seconds: 2)),
+                const SnackBar(content: Directionality(
+                  textDirection: TextDirection.rtl,
+                    child: Text("جاري إتمام الدفع...")), duration: Duration(seconds: 2)),
               );
               await sl<IapService>().buyAdRemoval();
             },
@@ -326,7 +328,12 @@ class _HomeContent extends StatelessWidget {
         if (snapshot.data == true) return const SizedBox.shrink();
         return Center(
           child: TextButton(
-            onPressed: () => sl<IapService>().restorePurchases(),
+            onPressed: () async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("جاري استعادة المشتريات..."), duration: Duration(seconds: 2)),
+              );
+              await sl<IapService>().restorePurchases();
+            },
             child: const Text(
               "استعادة المشتريات",
               style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -343,32 +350,46 @@ class _HomeContent extends StatelessWidget {
       builder: (context, state) {
         final activeFilter = (state is HomeLoaded) ? state.activeFilter : 'الكل';
         return Container(
-          height: 60,
-          margin: const EdgeInsets.symmetric(vertical: 10),
+          height: 40,
+          margin: const EdgeInsets.symmetric(vertical: 15),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            shrinkWrap: true,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: stages.length,
             itemBuilder: (context, index) {
-              final isSelected = stages[index] == activeFilter;
+              final label = stages[index];
+              final isSelected = label == activeFilter;
+              
               return Padding(
                 padding: const EdgeInsets.only(left: 10),
-                child: FilterChip(
-                  label: Text(stages[index]),
-                  selected: isSelected,
-                  onSelected: (_) => context.read<HomeCubit>().loadGrades(filter: stages[index]),
-                  selectedColor: AppTheme.primaryColor,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppTheme.textColor,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                child: GestureDetector(
+                  onTap: () => context.read<HomeCubit>().loadGrades(filter: label),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF006064) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected ? Colors.transparent : Colors.grey.shade200,
+                      ),
+                      boxShadow: isSelected ? [
+                        BoxShadow(
+                          color: const Color(0xFF006064).withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ] : null,
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black54,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: isSelected ? AppTheme.primaryColor : Colors.grey.shade200),
-                  ),
-                  showCheckmark: false,
                 ),
               );
             },
