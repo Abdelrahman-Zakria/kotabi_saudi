@@ -46,6 +46,7 @@ class _ContentViewState extends State<ContentView> {
   bool _isPdfLoading = true;
   bool _useWebView = false;
   late final WebViewController _webViewController;
+  String? _lastLoadedUrl;
 
   @override
   void initState() {
@@ -56,7 +57,8 @@ class _ContentViewState extends State<ContentView> {
   void _initWebViewController() {
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
+      ..setUserAgent("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+      ..setBackgroundColor(const Color(0xFFFFFFFF))
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (url) {
@@ -72,23 +74,53 @@ class _ContentViewState extends State<ContentView> {
       );
   }
 
+  void _handlePdfUrl(String url) {
+    if (_lastLoadedUrl == url) return;
+    _lastLoadedUrl = url;
+
+    // Use WebView for kottby.net (protected) OR direct PDF files
+    final bool isKottby = url.contains("kottby.net");
+    final bool isDirectPdf = url.toLowerCase().contains(".pdf");
+
+    if (isKottby || isDirectPdf) {
+      String finalUrl = url;
+      // Google Docs Viewer is only for direct .pdf links, NOT for kottby viewer pages
+      if (isDirectPdf && !url.contains("/ktby/")) {
+        finalUrl = "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
+      }
+
+      setState(() => _useWebView = true);
+      _webViewController.loadRequest(Uri.parse(finalUrl));
+    } else {
+      setState(() => _useWebView = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Advanced Detection: Check type OR if URL contains .pdf extension
     final pdfResource = widget.node?.resources.where((r) {
       final url = r.url.toLowerCase();
-      return r.type == 'pdf' || 
-             r.type == 'pdf_viewer' || 
+      return r.type == 'pdf' ||
+             r.type == 'pdf_viewer' ||
              r.type == 'pdf_direct' ||
              url.endsWith('.pdf') ||
-             url.contains('.pdf?');
+             url.contains('.pdf?') ||
+             url.contains('/ktby/');
     }).firstOrNull;
+
+    if (pdfResource != null) {
+      // Logic moved out of build but triggered here safely
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handlePdfUrl(pdfResource.url);
+      });
+    }
 
     final otherResources = widget.node?.resources.where((r) => r != pdfResource).toList() ?? [];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.node?.title ?? widget.title),
+        title: Text(widget.node?.title ?? widget.title,style: TextStyle(fontSize: 16),),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -157,30 +189,17 @@ class _ContentViewState extends State<ContentView> {
   }
 
   Widget _buildPdfViewer(String url) {
-    // If it's from a known protected domain or we've switched to WebView
-    if (url.contains("kottby.net") || _useWebView) {
-      // If we haven't loaded the webview yet (e.g. initial load for kottby.net)
-      if (!_useWebView) {
-        _useWebView = true;
-        final String viewerUrl = "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
-        _webViewController.loadRequest(Uri.parse(viewerUrl));
-      }
+    if (_useWebView) {
       return _buildWebViewer(url);
     }
-    
-    // More robust URL handling: remove double encoding if it exists
-    // and ensure special characters are handled correctly
+
+    // SfPdfViewer is now only a fallback for non-kottby direct PDFs
     String safeUrl = url.trim();
     try {
-      // If it's already encoded, parsing it and converting back to string
-      // avoids double encoding issues common with encodeFull
       safeUrl = Uri.parse(safeUrl).toString();
     } catch (e) {
       safeUrl = Uri.encodeFull(safeUrl);
     }
-
-    print("PDF URL: ${safeUrl}");
-
 
     return Container(
       margin: const EdgeInsets.all(8),
@@ -207,8 +226,7 @@ class _ContentViewState extends State<ContentView> {
                     _isPdfLoading = true;
                     _useWebView = true;
                   });
-                  
-                  // Load the request here instead of in the build method
+
                   final String viewerUrl = "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
                   _webViewController.loadRequest(Uri.parse(viewerUrl));
 

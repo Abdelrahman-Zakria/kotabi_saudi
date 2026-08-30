@@ -80,7 +80,7 @@ class EducationalNode extends Equatable {
               ?.map((e) => Resource.fromMap(Map<String, dynamic>.from(e as Map)))
               .toList() ??
           [],
-      breadcrumbs: (map['breadcrumb'] as List?)
+      breadcrumbs: (map['breadcrumbs'] as List? ?? map['breadcrumb'] as List?)
               ?.map((e) => Breadcrumb.fromMap(Map<String, dynamic>.from(e as Map)))
               .toList() ??
           [],

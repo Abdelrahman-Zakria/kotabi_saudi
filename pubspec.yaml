@@ -2,7 +2,7 @@ name: kotabi_saudi
 description: "Educational App for Saudi Curriculums"
 publish_to: 'none'
 
-version: 1.0.0+12
+version: 1.0.0+13
 
 environment:
   sdk: ^3.11.0
@@ -30,6 +30,8 @@ dependencies:
   webview_flutter: ^4.14.1
 
   # Services & Utils
+  http: ^1.2.0
+  html: ^0.15.6
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.1
   path_provider: ^2.1.5
