@@ -8,6 +8,7 @@ import 'package:kotabi_saudi/core/services/local_storage_service.dart';
 import 'package:kotabi_saudi/features/home/domain/repositories/educational_repository.dart';
 import 'package:kotabi_saudi/features/home/domain/entities/educational_node.dart';
 import 'package:kotabi_saudi/features/home/presentation/widgets/resource_chips.dart';
+import 'package:kotabi_saudi/features/home/presentation/widgets/platform_buttons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'cubit/content_cubit.dart';
 import 'cubit/content_state.dart';
@@ -98,25 +99,36 @@ class _ContentViewState extends State<ContentView> {
 
   @override
   Widget build(BuildContext context) {
-    // Advanced Detection: Check type OR if URL contains .pdf extension
+    // Strict Detection: ONLY treat as PDF if it's explicitly a direct PDF link
+    // or a known kottby viewer that is NOT a main category page.
     final pdfResource = widget.node?.resources.where((r) {
       final url = r.url.toLowerCase();
-      return r.type == 'pdf' ||
-             r.type == 'pdf_viewer' ||
-             r.type == 'pdf_direct' ||
-             url.endsWith('.pdf') ||
-             url.contains('.pdf?') ||
-             url.contains('/ktby/');
+      final isDirect = url.endsWith('.pdf') || url.contains('.pdf?');
+      final isViewer = url.contains('/ktby/') && !url.contains('category');
+      
+      return (r.type == 'pdf' || r.type == 'pdf_viewer' || r.type == 'pdf_direct') && (isDirect || isViewer);
     }).firstOrNull;
 
     if (pdfResource != null) {
-      // Logic moved out of build but triggered here safely
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _handlePdfUrl(pdfResource.url);
       });
     }
 
-    final otherResources = widget.node?.resources.where((r) => r != pdfResource).toList() ?? [];
+    final platformResources = widget.node?.resources.where((r) {
+      final url = r.url.toLowerCase();
+      return url.contains('ien.edu.sa') || url.contains('madrasati.sa');
+    }).toList() ?? [];
+
+    final otherResources = widget.node?.resources.where((r) => 
+      r != pdfResource && 
+      !platformResources.contains(r) &&
+      !r.label.contains("رابط") // Filter out generic "Link" chips
+    ).toList() ?? [];
+
+    // Identify if this is a "Book" page
+    final bool isBookPage = (widget.node?.title.contains("كتاب") ?? false) && 
+                            !(widget.node?.title.contains("حل") ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -138,7 +150,7 @@ class _ContentViewState extends State<ContentView> {
                 );
               },
             ),
-          if (pdfResource != null) ...[
+          if (pdfResource != null && !isBookPage) ...[
             IconButton(
               icon: const Icon(Icons.open_in_browser),
               tooltip: "فتح في المتصفح",
@@ -157,18 +169,62 @@ class _ContentViewState extends State<ContentView> {
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: Column(
-          children: [
-            _buildBreadcrumbs(),
-            if (otherResources.isNotEmpty) ResourceChips(resources: otherResources),
-            if (pdfResource != null)
-              Expanded(child: _buildPdfViewer(pdfResource.url))
-            else
-              Expanded(child: _buildItemsList(context)),
-          ],
+        child: BlocBuilder<ContentCubit, ContentState>(
+          builder: (context, state) {
+            bool hasChildren = (state is ContentLoaded && state.items.isNotEmpty);
+            
+            return Column(
+              children: [
+                _buildBreadcrumbs(),
+                
+                // Priority 1: If there are children (Semesters, Subjects), show them as a grid.
+                if (hasChildren)
+                  Expanded(child: _buildItemsList(context))
+                
+                // Priority 2: If there is a PDF, show it ONLY (as requested)
+                else if (pdfResource != null)
+                  Expanded(child: _buildPdfViewer(pdfResource.url))
+                
+                // Priority 3: Leaf node without direct PDF (like Book platform links)
+                else ...[
+                  // FOR BOOKS: Show ONLY Platform Buttons. No chips, no description.
+                  if (isBookPage) ...[
+                    if (platformResources.isNotEmpty) PlatformButtons(resources: platformResources)
+                    else const Expanded(child: Center(child: Text("المحتوى متوفر عبر المنصات الرسمية فقط"))),
+                  ] 
+                  // FOR OTHERS (Solutions, Tests without direct PDF): Show available resources
+                  else ...[
+                    if (platformResources.isNotEmpty) PlatformButtons(resources: platformResources),
+                    if (otherResources.isNotEmpty) ResourceChips(resources: otherResources),
+                    Expanded(child: _buildFallbackContent(context, state)),
+                  ],
+                ],
+              ],
+            );
+          },
         ),
       ),
     );
+  }
+
+  Widget _buildFallbackContent(BuildContext context, ContentState state) {
+    if (state is ContentLoading) return const Center(child: CircularProgressIndicator());
+    
+    if (widget.node != null && widget.node!.description.isNotEmpty && widget.node!.description.length > 50) {
+       // Filter out common junk text from descriptions
+       final cleanDesc = widget.node!.description
+           .replaceAll("تكرمأ ساهم في نشر موقع كتبي المدرسية للأخرين", "")
+           .replaceAll("تحميل تطبيق كتبي المدرسية من هنا", "")
+           .trim();
+           
+       if (cleanDesc.isNotEmpty) {
+         return SingleChildScrollView(
+           padding: const EdgeInsets.all(16),
+           child: Text(cleanDesc, style: const TextStyle(height: 1.6, color: AppTheme.textColor, fontSize: 15)),
+         );
+       }
+    }
+    return const Center(child: Text("لا توجد محتويات حالياً"));
   }
 
   Widget _buildBreadcrumbs() {
@@ -272,48 +328,103 @@ class _ContentViewState extends State<ContentView> {
   Widget _buildItemsList(BuildContext context) {
     return BlocBuilder<ContentCubit, ContentState>(
       builder: (context, state) {
-        if (state is ContentLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        if (state is ContentLoading) return const SizedBox.shrink(); // Handled by parent
         if (state is ContentLoaded) {
-          if (state.items.isEmpty) {
-             if (widget.node != null && widget.node!.description.isNotEmpty) {
-               return SingleChildScrollView(
-                 padding: const EdgeInsets.all(16),
-                 child: Text(widget.node!.description, style: const TextStyle(height: 1.6, color: AppTheme.textColor)),
-               );
-             }
-             return const Center(child: Text("لا توجد محتويات"));
-          }
-          return ListView.builder(
+          if (state.items.isEmpty) return const SizedBox.shrink(); // Handled by parent
+
+          return GridView.builder(
             padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 1.1,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
             itemCount: state.items.length,
             itemBuilder: (context, index) {
               final item = state.items[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ContentPage(
-                          node: item,
-                          parentId: item.id,
-                          title: item.title,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
+              return _buildItemCard(context, item);
             },
           );
         }
         return const SizedBox();
       },
+    );
+  }
+
+  Widget _buildItemCard(BuildContext context, EducationalNode item) {
+    IconData icon = Icons.folder_rounded;
+    Color color = AppTheme.primaryColor;
+
+    if (item.title.contains("الفصل الدراسي")) {
+      icon = Icons.calendar_today_rounded;
+      color = Colors.blue.shade700;
+    } else if (item.title.contains("كتاب")) {
+      icon = Icons.book_rounded;
+      color = Colors.orange.shade800;
+    } else if (item.title.contains("حل") || item.title.contains("الحل")) {
+      icon = Icons.task_alt_rounded;
+      color = Colors.green.shade700;
+    } else if (item.title.contains("اختبار")) {
+      icon = Icons.quiz_rounded;
+      color = Colors.red.shade700;
+    }
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ContentPage(
+              node: item,
+              parentId: item.id,
+              title: item.title,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 30),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                item.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
