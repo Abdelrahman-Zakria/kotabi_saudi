@@ -2,7 +2,7 @@ name: kotabi_saudi
 description: "Educational App for Saudi Curriculums"
 publish_to: 'none'
 
-version: 1.0.0+14
+version: 1.0.0+15
 
 environment:
   sdk: ^3.11.0
