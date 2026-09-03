@@ -21,7 +21,7 @@ class AdService {
   bool get isFullScreenAdShowing => _isAdShowing;
 
   // Set this to false for production.
-  static const bool useTestAds = true;
+  static const bool useTestAds = false;
 
   // Test IDs for Android
   static const String testAndroidBannerId =
