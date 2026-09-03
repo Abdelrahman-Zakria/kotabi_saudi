@@ -11,19 +11,16 @@ class FcmService {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
-    // 1. Request Permission (iOS/Android 13+)
-    NotificationSettings settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
+    // Permission request moved to sequenced flow in main.dart
+    
     // 2. iOS Foreground Display Options
     await _messaging.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
+
+    NotificationSettings settings = await _messaging.getNotificationSettings();
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       debugPrint('User granted notification permission');
@@ -94,6 +91,21 @@ class FcmService {
       navigatorKey.currentState!.push(
         MaterialPageRoute(builder: (_) => const NotificationsPage()),
       );
+    }
+  }
+
+  Future<void> requestPermissions() async {
+    await _messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    
+    // Re-check token and subscription after permission might have changed
+    String? token = await _messaging.getToken();
+    if (token != null) {
+      debugPrint('FCM Token after permission request: $token');
+      await _messaging.subscribeToTopic('all_users');
     }
   }
 }

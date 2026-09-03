@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -20,9 +21,9 @@ class NotificationService {
     
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
     
     final initializationSettings = InitializationSettings(
@@ -41,9 +42,16 @@ class NotificationService {
     final bool enabled = prefs.getBool('notifications_enabled') ?? true;
     
     if (enabled) {
-      final bool granted = await _requestPermissions();
-      if (granted) {
-        await _sendWelcomeNotificationIfNeeded(prefs);
+      // Manual permission request is now handled in main.dart sequence for iOS ATT compliance
+      if (Platform.isAndroid) {
+        final bool granted = await requestPermissions();
+        if (granted) {
+          await _sendWelcomeNotificationIfNeeded(prefs);
+          await _scheduleDailyStudyReminder();
+        }
+      } else {
+        // On iOS, we just check if it was already granted to schedule reminders
+        // The actual prompt is triggered in main.dart
         await _scheduleDailyStudyReminder();
       }
     }
@@ -57,7 +65,7 @@ class NotificationService {
     }
   }
 
-  Future<bool> _requestPermissions() async {
+  Future<bool> requestPermissions() async {
     try {
       if (kIsWeb) return false;
       
@@ -70,7 +78,12 @@ class NotificationService {
       
       final iosImplementation = _notifications.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
       if (iosImplementation != null) {
-        return await iosImplementation.requestPermissions(alert: true, badge: true, sound: true) ?? false;
+        final granted = await iosImplementation.requestPermissions(alert: true, badge: true, sound: true) ?? false;
+        if (granted) {
+          final prefs = await SharedPreferences.getInstance();
+          await _sendWelcomeNotificationIfNeeded(prefs);
+        }
+        return granted;
       }
       return false;
     } catch (e) {

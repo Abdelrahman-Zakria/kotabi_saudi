@@ -78,12 +78,12 @@ void main() async {
 
     final adService = AdService();
     adService.navigatorKey = navigatorKey;
-    await adService.init();
+    // Initial initialization moved to sequenced sequence
     sl.registerLazySingleton(() => adService);
 
     final reviewService = ReviewService();
     reviewService.navigatorKey = navigatorKey;
-    await reviewService.init();
+    // Initial initialization moved to sequenced sequence
     sl.registerLazySingleton(() => reviewService);
 
     sl.registerLazySingleton<EducationalRepository>(
@@ -95,8 +95,14 @@ void main() async {
     );
 
     await Alarm.init();
+    
+    // Initial initialization of services that don't show UI prompts immediately
     await notificationService.init();
     await fcmService.init();
+
+    // 3. Start background initialization sequence after a delay to handle permissions correctly
+    _initializeSequencedServices(notificationService, adService, reviewService);
+
   } catch (e) {
     debugPrint("Initialization Error: $e");
   } finally {
@@ -104,6 +110,32 @@ void main() async {
   }
 
   runApp(const MyApp());
+}
+
+Future<void> _initializeSequencedServices(
+  NotificationService notificationService,
+  AdService adService,
+  ReviewService reviewService,
+) async {
+  // Wait for the app UI to be ready
+  await Future.delayed(const Duration(milliseconds: 1000));
+
+  // 1. Request Notification Permissions first (via both services to be sure)
+  debugPrint("Requesting Notification Permissions...");
+  await notificationService.requestPermissions();
+  if (sl.isRegistered<FcmService>()) {
+    await sl<FcmService>().requestPermissions();
+  }
+
+  // 2. Wait for the user to interact with the notification dialog
+  await Future.delayed(const Duration(milliseconds: 1500));
+
+  // 3. Initialize Ads (which includes App Tracking Transparency prompt on iOS)
+  debugPrint("Initializing Ads and ATT...");
+  await adService.init();
+  
+  // 4. Initialize Review Service
+  await reviewService.init();
 }
 
 class MyApp extends StatefulWidget {
