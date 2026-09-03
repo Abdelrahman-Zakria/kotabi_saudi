@@ -69,7 +69,6 @@ class _ContentViewState extends State<ContentView> {
             if (mounted) setState(() => _isPdfLoading = false);
           },
           onWebResourceError: (WebResourceError error) {
-            print("WebView Error: ${error.description}");
           },
         ),
       );
@@ -277,7 +276,6 @@ class _ContentViewState extends State<ContentView> {
               },
               onDocumentLoadFailed: (details) {
                 if (mounted) {
-                  print("PDF ERROR : ${details.description}");
                   setState(() {
                     _isPdfLoading = true;
                     _useWebView = true;

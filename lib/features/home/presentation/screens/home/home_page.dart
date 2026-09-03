@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kotabi_saudi/main.dart';
+import 'package:kotabi_saudi/core/services/iap_service.dart';
+import 'package:kotabi_saudi/core/services/review_service.dart';
 import 'package:kotabi_saudi/core/theme/app_theme.dart';
 import 'package:kotabi_saudi/features/home/domain/repositories/educational_repository.dart';
 import 'package:kotabi_saudi/features/home/presentation/widgets/custom_bottom_nav.dart';
@@ -11,9 +13,6 @@ import 'package:kotabi_saudi/features/home/presentation/screens/favorites/favori
 import 'package:kotabi_saudi/features/home/presentation/screens/library/library_page.dart';
 import 'package:kotabi_saudi/features/home/presentation/screens/notifications/notifications_page.dart';
 import 'package:kotabi_saudi/features/tahderi/presentation/screens/tahderi/tahderi_page.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:kotabi_saudi/core/services/ad_service.dart';
-import 'package:kotabi_saudi/core/services/iap_service.dart';
 import 'cubit/home_cubit.dart';
 import 'cubit/home_state.dart';
 
@@ -26,33 +25,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 2; // Home index
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // _loadBannerAd(); // Temporarily disabled
-  }
-
-  void _loadBannerAd() {
-    if (sl.isRegistered<AdService>()) {
-      _bannerAd = sl<AdService>().createBannerAd();
-      _bannerAd?.load().then((_) {
-        if (mounted) {
-          setState(() {
-            _isBannerAdLoaded = true;
-          });
-        }
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,11 +40,7 @@ class _HomePageState extends State<HomePage> {
       create: (context) => HomeCubit(sl<EducationalRepository>())..loadGrades(),
       child: Builder(
         builder: (context) => Scaffold(
-          body: Column(
-            children: [
-              Expanded(child: pages[_currentIndex]),
-            ],
-          ),
+          body: Column(children: [Expanded(child: pages[_currentIndex])]),
           bottomNavigationBar: CustomBottomNav(
             currentIndex: _currentIndex,
             onTap: (index) {
@@ -104,8 +72,14 @@ class _HomeContent extends StatelessWidget {
           elevation: 0,
           leading: Builder(
             builder: (context) => IconButton(
-              icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: Colors.white,
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsPage()),
+              ),
             ),
           ),
         ),
@@ -118,6 +92,7 @@ class _HomeContent extends StatelessWidget {
               children: [
                 _buildHeader(),
                 _buildTahderiButton(),
+                _buildRateButton(),
                 _buildAdFreeButton(),
                 _buildRestoreButton(),
                 _buildFilters(context),
@@ -241,15 +216,68 @@ class _HomeContent extends StatelessWidget {
                       ),
                       Text(
                         "تصفح الكتب والتحاضير المدرسية",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRateButton() {
+    return Builder(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: InkWell(
+          onTap: () async {
+            await sl<ReviewService>().showReviewPrompt();
+          },
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFF43A047), width: 1),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.star_rate_rounded, color: Color(0xFF2E7D32)),
+                SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "تقييم التطبيق",
+                        style: TextStyle(
+                          color: Color(0xFF2E7D32),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "شاركنا رأيك في المتجر",
+                        style: TextStyle(color: Colors.black54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Color(0xFF2E7D32),
+                  size: 16,
+                ),
               ],
             ),
           ),
@@ -264,15 +292,19 @@ class _HomeContent extends StatelessWidget {
       initialData: sl<IapService>().isAdFree,
       builder: (context, snapshot) {
         if (snapshot.data == true) return const SizedBox.shrink();
-        
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: InkWell(
             onTap: () async {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Directionality(
-                  textDirection: TextDirection.rtl,
-                    child: Text("جاري إتمام الدفع...")), duration: Duration(seconds: 2)),
+                const SnackBar(
+                  content: Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: Text("جاري إتمام الدفع..."),
+                  ),
+                  duration: Duration(seconds: 2),
+                ),
               );
               await sl<IapService>().buyAdRemoval();
             },
@@ -302,15 +334,16 @@ class _HomeContent extends StatelessWidget {
                         ),
                         const Text(
                           "تصفح التطبيق بدون أي إزعاج مقابل 3\$ فقط",
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Colors.black54, fontSize: 12),
                         ),
                       ],
                     ),
                   ),
-                  Icon(Icons.arrow_forward_ios, color: Colors.amber.shade900, size: 16),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.amber.shade900,
+                    size: 16,
+                  ),
                 ],
               ),
             ),
@@ -330,7 +363,10 @@ class _HomeContent extends StatelessWidget {
           child: TextButton(
             onPressed: () async {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("جاري استعادة المشتريات..."), duration: Duration(seconds: 2)),
+                const SnackBar(
+                  content: Text("جاري استعادة المشتريات..."),
+                  duration: Duration(seconds: 2),
+                ),
               );
               await sl<IapService>().restorePurchases();
             },
@@ -348,7 +384,9 @@ class _HomeContent extends StatelessWidget {
     final stages = ['الكل', 'الابتدائية', 'المتوسط', 'الثانوية'];
     return BlocBuilder<HomeCubit, HomeState>(
       builder: (context, state) {
-        final activeFilter = (state is HomeLoaded) ? state.activeFilter : 'الكل';
+        final activeFilter = (state is HomeLoaded)
+            ? state.activeFilter
+            : 'الكل';
         return Container(
           height: 40,
           margin: const EdgeInsets.symmetric(vertical: 15),
@@ -359,33 +397,44 @@ class _HomeContent extends StatelessWidget {
             itemBuilder: (context, index) {
               final label = stages[index];
               final isSelected = label == activeFilter;
-              
+
               return Padding(
                 padding: const EdgeInsets.only(left: 10),
                 child: GestureDetector(
-                  onTap: () => context.read<HomeCubit>().loadGrades(filter: label),
+                  onTap: () =>
+                      context.read<HomeCubit>().loadGrades(filter: label),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF006064) : Colors.white,
+                      color: isSelected
+                          ? const Color(0xFF006064)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isSelected ? Colors.transparent : Colors.grey.shade200,
+                        color: isSelected
+                            ? Colors.transparent
+                            : Colors.grey.shade200,
                       ),
-                      boxShadow: isSelected ? [
-                        BoxShadow(
-                          color: const Color(0xFF006064).withValues(alpha: 0.2),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        )
-                      ] : null,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF006064,
+                                ).withValues(alpha: 0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: Text(
                       label,
                       style: TextStyle(
                         color: isSelected ? Colors.white : Colors.black54,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         fontSize: 14,
                       ),
                     ),
@@ -403,10 +452,12 @@ class _HomeContent extends StatelessWidget {
     return BlocBuilder<HomeCubit, HomeState>(
       builder: (context, state) {
         if (state is HomeLoading) {
-          return const Center(child: Padding(
-            padding: EdgeInsets.only(top: 100),
-            child: CircularProgressIndicator(),
-          ));
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.only(top: 100),
+              child: CircularProgressIndicator(),
+            ),
+          );
         }
         if (state is HomeLoaded) {
           return GridView.builder(

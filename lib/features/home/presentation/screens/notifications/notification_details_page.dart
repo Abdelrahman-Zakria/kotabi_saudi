@@ -1,15 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:kotabi_saudi/core/theme/app_theme.dart';
+import 'package:kotabi_saudi/core/services/ad_service.dart';
+import 'package:kotabi_saudi/main.dart';
 
-class NotificationDetailsPage extends StatelessWidget {
+class NotificationDetailsPage extends StatefulWidget {
   final Map<String, dynamic> notification;
 
   const NotificationDetailsPage({super.key, required this.notification});
 
   @override
+  State<NotificationDetailsPage> createState() => _NotificationDetailsPageState();
+}
+
+class _NotificationDetailsPageState extends State<NotificationDetailsPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Show App Open Ad when entering details page
+    if (sl.isRegistered<AdService>()) {
+      sl<AdService>().showAppOpenAdIfAvailable();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final date = DateTime.parse(notification['timestamp']);
+    final date = DateTime.parse(widget.notification['timestamp']);
     final formattedDate = intl.DateFormat('yyyy/MM/dd - hh:mm a').format(date);
 
     return Scaffold(
@@ -46,7 +62,7 @@ class NotificationDetailsPage extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            notification['title'] ?? '',
+                            widget.notification['title'] ?? '',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -58,7 +74,7 @@ class NotificationDetailsPage extends StatelessWidget {
                     ),
                     const Divider(height: 30),
                     Text(
-                      notification['body'] ?? '',
+                      widget.notification['body'] ?? '',
                       style: const TextStyle(
                         fontSize: 16,
                         height: 1.6,

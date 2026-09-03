@@ -81,8 +81,8 @@
 		<false/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
-		<key>GADApplicationIdentifier</key>
-		<string>ca-app-pub-8776534633121497~1065430921</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-6520884181780729~6217038451</string>
 		<key>NSUserTrackingUsageDescription</key>
 		<string>هذا المعرف سيستخدم لتقديم إعلانات مخصصة لك.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>

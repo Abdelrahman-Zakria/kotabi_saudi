@@ -14,45 +14,61 @@ class AdService {
   AppOpenAd? _appOpenAd;
   InterstitialAd? _interstitialAd;
   bool _isInterstitialAdLoading = false;
-  Timer? _periodicAdTimer;
+  Timer? _appOpenAdTimer;
+  Timer? _interstitialAdTimer;
   bool _isAdShowing = false;
   GlobalKey<NavigatorState>? navigatorKey;
+  bool get isFullScreenAdShowing => _isAdShowing;
 
-  // Set this to false for production
-  static const bool useTestAds = false;
+  // Set this to false for production.
+  static const bool useTestAds = true;
 
   // Test IDs for Android
-  static const String testAndroidBannerId = 'ca-app-pub-3940256099942544/6300978111';
-  static const String testAndroidInterstitialId = 'ca-app-pub-3940256099942544/1033173712';
-  static const String testAndroidAppOpenId = 'ca-app-pub-3940256099942544/9257395915';
+  static const String testAndroidBannerId =
+      'ca-app-pub-3940256099942544/6300978111';
+  static const String testAndroidInterstitialId =
+      'ca-app-pub-3940256099942544/1033173712';
+  static const String testAndroidAppOpenId =
+      'ca-app-pub-3940256099942544/9257395915';
 
   // Test IDs for iOS
-  static const String testIosBannerId = 'ca-app-pub-3940256099942544/2934735716';
-  static const String testIosInterstitialId = 'ca-app-pub-3940256099942544/4411468910';
-  static const String testIosAppOpenId = 'ca-app-pub-3940256099942544/5575463023';
+  static const String testIosBannerId =
+      'ca-app-pub-3940256099942544/2934735716';
+  static const String testIosInterstitialId =
+      'ca-app-pub-3940256099942544/4411468910';
+  static const String testIosAppOpenId =
+      'ca-app-pub-3940256099942544/5575463023';
 
   // IDs for Android
-  static const String androidBannerId = 'ca-app-pub-8776534633121497/3117135380';
-  static const String androidInterstitialId = 'ca-app-pub-8776534633121497/8567732603';
-  static const String androidAppOpenId = 'ca-app-pub-8776534633121497/8441252864';
+  static const String androidBannerId =
+      'ca-app-pub-8776534633121497/3117135380';
+  static const String androidInterstitialId =
+      'ca-app-pub-8776534633121497/8567732603';
+  static const String androidAppOpenId =
+      'ca-app-pub-8776534633121497/8441252864';
 
   // IDs for iOS
-  static const String iosBannerId = 'ca-app-pub-8776534633121497/2859095021';
-  static const String iosInterstitialId = 'ca-app-pub-8776534633121497/8567732603';
-  static const String iosAppOpenId = 'ca-app-pub-8776534633121497/8441252864';
+  static const String iosBannerId = 'ca-app-pub-6520884181780729/5494878521';
+  static const String iosInterstitialId = 'ca-app-pub-6520884181780729/9106820474';
+  static const String iosAppOpenId = 'ca-app-pub-6520884181780729/4588990967';
 
   String get bannerAdUnitId {
-    if (useTestAds) return Platform.isAndroid ? testAndroidBannerId : testIosBannerId;
+    if (useTestAds)
+      return Platform.isAndroid ? testAndroidBannerId : testIosBannerId;
     return Platform.isAndroid ? androidBannerId : iosBannerId;
   }
 
   String get interstitialAdUnitId {
-    if (useTestAds) return Platform.isAndroid ? testAndroidInterstitialId : testIosInterstitialId;
+    if (useTestAds)
+      return Platform.isAndroid
+          ? testAndroidInterstitialId
+          : testIosInterstitialId;
     return Platform.isAndroid ? androidInterstitialId : iosInterstitialId;
   }
 
   String get appOpenAdUnitId {
-    if (useTestAds) return Platform.isAndroid ? testAndroidAppOpenId : testIosAppOpenId;
+    if (useTestAds)
+      return Platform.isAndroid ? testAndroidAppOpenId : testIosAppOpenId;
     return Platform.isAndroid ? androidAppOpenId : iosAppOpenId;
   }
 
@@ -65,7 +81,8 @@ class AdService {
     // Listen for ad-free status changes
     IapService().adFreeStatusStream.listen((isAdFree) {
       if (isAdFree) {
-        _periodicAdTimer?.cancel();
+        _appOpenAdTimer?.cancel();
+        _interstitialAdTimer?.cancel();
         _appOpenAd?.dispose();
         _appOpenAd = null;
         _interstitialAd?.dispose();
@@ -76,7 +93,8 @@ class AdService {
 
     if (Platform.isIOS) {
       try {
-        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+        final status =
+            await AppTrackingTransparency.trackingAuthorizationStatus;
         if (status == TrackingStatus.notDetermined) {
           await AppTrackingTransparency.requestTrackingAuthorization();
         }
@@ -93,11 +111,22 @@ class AdService {
 
   void startPeriodicAds() {
     if (IapService().isAdFree) return;
-    _periodicAdTimer?.cancel();
-    _periodicAdTimer = Timer.periodic(const Duration(minutes: 3), (timer) {
+    _appOpenAdTimer?.cancel();
+    _interstitialAdTimer?.cancel();
+
+    _appOpenAdTimer = Timer.periodic(const Duration(seconds: 40), (timer) {
       if (!_isAdShowing && !IapService().isAdFree) {
-        dev.log("Triggering 3-minute periodic App Open ad");
+        dev.log('Triggering 40-second periodic App Open ad');
         showAppOpenAdIfAvailable();
+      } else if (IapService().isAdFree) {
+        timer.cancel();
+      }
+    });
+
+    _interstitialAdTimer = Timer.periodic(const Duration(seconds: 90), (timer) {
+      if (!_isAdShowing && !IapService().isAdFree) {
+        dev.log('Triggering 90-second periodic Interstitial ad');
+        showInterstitialAd(onAdDismissed: () {});
       } else if (IapService().isAdFree) {
         timer.cancel();
       }
@@ -105,7 +134,10 @@ class AdService {
   }
 
   void dispose() {
-    _periodicAdTimer?.cancel();
+    _appOpenAdTimer?.cancel();
+    _interstitialAdTimer?.cancel();
+    _appOpenAd?.dispose();
+    _interstitialAd?.dispose();
   }
 
   void _showErrorDialog(String type, dynamic error) {

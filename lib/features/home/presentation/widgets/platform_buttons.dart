@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kotabi_saudi/features/home/domain/entities/educational_node.dart';
-import 'package:kotabi_saudi/core/theme/app_theme.dart';
 
 class PlatformButtons extends StatelessWidget {
   final List<Resource> resources;

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'home_state.dart';
 import '../../../../domain/repositories/educational_repository.dart';
@@ -27,6 +28,14 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   void shareApp() {
-    Share.share('حمل تطبيق كتبي التعليمي الآن واستمتع بكافة المناهج الدراسية مجاناً!\nhttps://apps.apple.com/us/app/%D9%83%D8%AA%D8%A8%D9%8A-%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9/id6804324680');
+    final String link = Platform.isIOS
+        ? 'https://apps.apple.com/app/%D9%83%D8%AA%D8%A8%D9%8A-%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9/id6804324680'
+        : 'https://play.google.com/store/apps/details?id=com.mo.azkaryapppasi';
+        
+    SharePlus.instance.share(
+      ShareParams(
+        text: 'حمل تطبيق كتبي التعليمي الآن واستمتع بكافة المناهج الدراسية مجاناً!\n$link',
+      ),
+    );
   }
 }

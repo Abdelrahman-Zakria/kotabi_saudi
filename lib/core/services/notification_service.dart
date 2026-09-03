@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -7,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alarm/alarm.dart';
 import 'package:kotabi_saudi/main.dart';
 import 'package:kotabi_saudi/core/services/local_storage_service.dart';
+import 'package:kotabi_saudi/features/home/presentation/screens/notifications/notifications_page.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
@@ -23,8 +25,16 @@ class NotificationService {
       requestSoundPermission: true,
     );
     
+    final initializationSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
     await _notifications.initialize(
-      settings: InitializationSettings(android: androidSettings, iOS: iosSettings),
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        _navigateToNotifications();
+      },
     );
 
     final prefs = await SharedPreferences.getInstance();
@@ -36,6 +46,14 @@ class NotificationService {
         await _sendWelcomeNotificationIfNeeded(prefs);
         await _scheduleDailyStudyReminder();
       }
+    }
+  }
+
+  void _navigateToNotifications() {
+    if (navigatorKey.currentState != null) {
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(builder: (_) => const NotificationsPage()),
+      );
     }
   }
 

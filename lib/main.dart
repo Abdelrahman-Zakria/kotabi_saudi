@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +15,8 @@ import 'package:kotabi_saudi/core/services/notification_service.dart';
 import 'package:kotabi_saudi/core/services/fcm_service.dart';
 import 'package:kotabi_saudi/core/services/ad_service.dart';
 import 'package:kotabi_saudi/core/services/iap_service.dart';
+import 'package:kotabi_saudi/core/services/review_service.dart';
+import 'package:kotabi_saudi/core/widgets/global_banner_ad.dart';
 import 'package:kotabi_saudi/features/home/domain/repositories/educational_repository.dart';
 import 'package:kotabi_saudi/features/home/data/repositories/educational_repository_impl.dart';
 import 'package:kotabi_saudi/features/tahderi/domain/repositories/tahderi_repository.dart';
@@ -27,22 +30,42 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (message.notification != null) {
+    final prefs = await SharedPreferences.getInstance();
+    final historyKey = 'notifications_history';
+    final List<String> list = prefs.getStringList(historyKey) ?? [];
+
+    final newItem = json.encode({
+      'title': message.notification?.title ?? '',
+      'body': message.notification?.body ?? '',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
+    list.insert(0, newItem);
+    if (list.length > 50) list.removeLast();
+
+    await prefs.setStringList(historyKey, list);
+  }
+
   debugPrint("Handling a background message: ${message.messageId}");
 }
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  
+
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
     // 2. Register background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     final prefs = await SharedPreferences.getInstance();
     sl.registerLazySingleton(() => LocalStorageService(prefs));
-    
+
     final notificationService = NotificationService();
     sl.registerLazySingleton(() => notificationService);
 
@@ -57,19 +80,23 @@ void main() async {
     adService.navigatorKey = navigatorKey;
     await adService.init();
     sl.registerLazySingleton(() => adService);
-    
+
+    final reviewService = ReviewService();
+    reviewService.navigatorKey = navigatorKey;
+    await reviewService.init();
+    sl.registerLazySingleton(() => reviewService);
+
     sl.registerLazySingleton<EducationalRepository>(
-      () => EducationalRepositoryImpl(FirebaseFirestore.instance)
+      () => EducationalRepositoryImpl(FirebaseFirestore.instance),
     );
 
     sl.registerLazySingleton<TahderiRepository>(
-      () => TahderiRepositoryImpl(FirebaseFirestore.instance)
+      () => TahderiRepositoryImpl(FirebaseFirestore.instance),
     );
 
     await Alarm.init();
     await notificationService.init();
     await fcmService.init();
-
   } catch (e) {
     debugPrint("Initialization Error: $e");
   } finally {
@@ -121,6 +148,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         title: 'كتبي السعودية',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        builder: (context, child) {
+          return Column(
+            children: [
+              Expanded(child: child ?? const SizedBox.shrink()),
+              const GlobalBannerAd(),
+            ],
+          );
+        },
         home: const HomePage(),
       ),
     );

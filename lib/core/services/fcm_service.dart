@@ -1,8 +1,10 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:kotabi_saudi/main.dart';
 import 'package:kotabi_saudi/core/services/local_storage_service.dart';
+import 'package:kotabi_saudi/features/home/presentation/screens/notifications/notifications_page.dart';
 
 class FcmService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -69,9 +71,29 @@ class FcmService {
       }
     });
 
-    // 6. Handle notification click
+    // 6. Handle notification click (Background/Suspended state)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('Notification clicked! (from background)');
+      _navigateToNotifications();
     });
+
+    // 7. Check if app was opened via notification (Terminated state)
+    _messaging.getInitialMessage().then((RemoteMessage? message) {
+      if (message != null) {
+        debugPrint('App opened from terminated state via notification');
+        // Small delay to ensure navigator is ready
+        Future.delayed(const Duration(seconds: 1), () {
+          _navigateToNotifications();
+        });
+      }
+    });
+  }
+
+  void _navigateToNotifications() {
+    if (navigatorKey.currentState != null) {
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(builder: (_) => const NotificationsPage()),
+      );
+    }
   }
 }
