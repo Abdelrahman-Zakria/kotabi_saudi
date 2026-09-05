@@ -24,14 +24,16 @@ class ReviewService {
 
   void showInitialReviewPrompt() {
     _initialReviewTimer?.cancel();
-    _initialReviewTimer = Timer(const Duration(seconds: 10), () {
+    // Delay increased to 6 minutes to comply with App Store Guideline 5.6.3
+    _initialReviewTimer = Timer(const Duration(minutes: 6), () {
       showReviewPrompt();
     });
   }
 
   void startPeriodicReviewRequests() {
     _reviewTimer?.cancel();
-    _reviewTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+    // Reduced frequency to 10 minutes to be less aggressive
+    _reviewTimer = Timer.periodic(const Duration(minutes: 10), (_) {
       showReviewPrompt();
     });
   }
