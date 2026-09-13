@@ -38,11 +38,11 @@ class ResourceChips extends StatelessWidget {
     } else if (isPdf) {
       icon = Icons.picture_as_pdf;
       label = res.label.isNotEmpty ? res.label : 'عرض PDF';
-      color = Colors.red.shade700;
+      color = const Color(0xFF008080); // Primary Teal instead of Red
     } else if (res.type == 'youtube') {
       icon = Icons.play_circle_fill;
       label = 'فيديو';
-      color = Colors.red;
+      color = const Color(0xFFC62828); // Darker Red/Crimson (more formal)
     } else {
       icon = Icons.link;
       label = res.label.isNotEmpty ? res.label : 'مصدر';

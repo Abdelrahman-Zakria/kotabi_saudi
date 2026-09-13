@@ -186,16 +186,20 @@ class _ContentViewState extends State<ContentView> {
                 
                 // Priority 3: Leaf node without direct PDF (like Book platform links)
                 else ...[
-                  // FOR BOOKS: Show ONLY Platform Buttons. No chips, no description.
-                  if (isBookPage) ...[
-                    if (platformResources.isNotEmpty) PlatformButtons(resources: platformResources)
-                    else const Expanded(child: Center(child: Text("المحتوى متوفر عبر المنصات الرسمية فقط"))),
-                  ] 
-                  // FOR OTHERS (Solutions, Tests without direct PDF): Show available resources
+                  if (state is ContentLoading)
+                    const Expanded(child: Center(child: CircularProgressIndicator()))
                   else ...[
-                    if (platformResources.isNotEmpty) PlatformButtons(resources: platformResources),
-                    if (otherResources.isNotEmpty) ResourceChips(resources: otherResources),
-                    Expanded(child: _buildFallbackContent(context, state)),
+                    // FOR BOOKS: Show ONLY Platform Buttons. No chips, no description.
+                    if (isBookPage) ...[
+                      if (platformResources.isNotEmpty) PlatformButtons(resources: platformResources)
+                      else const Expanded(child: Center(child: Text("المحتوى متوفر عبر المنصات الرسمية فقط"))),
+                    ] 
+                    // FOR OTHERS (Solutions, Tests without direct PDF): Show available resources
+                    else ...[
+                      if (platformResources.isNotEmpty) PlatformButtons(resources: platformResources),
+                      if (otherResources.isNotEmpty) ResourceChips(resources: otherResources),
+                      Expanded(child: _buildFallbackContent(context, state)),
+                    ],
                   ],
                 ],
               ],
@@ -365,7 +369,7 @@ class _ContentViewState extends State<ContentView> {
       color = Colors.green.shade700;
     } else if (item.title.contains("اختبار")) {
       icon = Icons.quiz_rounded;
-      color = Colors.red.shade700;
+      color = Colors.deepPurple.shade700;
     }
 
     return InkWell(
