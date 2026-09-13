@@ -98,14 +98,11 @@ class _ContentViewState extends State<ContentView> {
 
   @override
   Widget build(BuildContext context) {
-    // Strict Detection: ONLY treat as PDF if it's explicitly a direct PDF link
-    // or a known kottby viewer that is NOT a main category page.
+    // Strict Detection: ONLY treat as PDF if it's explicitly a direct PDF link.
+    // Webview-based viewers are NO LONGER allowed to render.
     final pdfResource = widget.node?.resources.where((r) {
       final url = r.url.toLowerCase();
-      final isDirect = url.endsWith('.pdf') || url.contains('.pdf?');
-      final isViewer = url.contains('/ktby/') && !url.contains('category');
-      
-      return (r.type == 'pdf' || r.type == 'pdf_viewer' || r.type == 'pdf_direct') && (isDirect || isViewer);
+      return (r.type == 'pdf' || r.type == 'pdf_direct') && (url.endsWith('.pdf') || url.contains('.pdf?'));
     }).firstOrNull;
 
     if (pdfResource != null) {
@@ -116,18 +113,21 @@ class _ContentViewState extends State<ContentView> {
 
     final platformResources = widget.node?.resources.where((r) {
       final url = r.url.toLowerCase();
-      return url.contains('ien.edu.sa') || url.contains('madrasati.sa');
+      return url.contains('iencontent.ien.edu.sa') || url.contains('schools.madrasati.sa') || url.contains('ien.edu.sa') || url.contains('madrasati.sa');
     }).toList() ?? [];
 
     final otherResources = widget.node?.resources.where((r) => 
       r != pdfResource && 
       !platformResources.contains(r) &&
-      !r.label.contains("رابط") // Filter out generic "Link" chips
+      !r.label.contains("رابط") &&
+      !r.url.contains("kottby.net/ktby") // Block kottby viewer from showing as chips
     ).toList() ?? [];
 
-    // Identify if this is a "Book" page
-    final bool isBookPage = (widget.node?.title.contains("كتاب") ?? false) && 
-                            !(widget.node?.title.contains("حل") ?? false);
+    // Identify if this is a "Book" or sub-leaf material page
+    final bool isBookOrLeafPage = (widget.node?.title.contains("كتاب") ?? false) || 
+                                  (widget.node?.title.contains("حل") ?? false) ||
+                                  (widget.node?.title.contains("توزيع") ?? false) ||
+                                  (widget.node?.title.contains("اختبار") ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -149,7 +149,7 @@ class _ContentViewState extends State<ContentView> {
                 );
               },
             ),
-          if (pdfResource != null && !isBookPage) ...[
+          if (pdfResource != null && !isBookOrLeafPage) ...[
             IconButton(
               icon: const Icon(Icons.open_in_browser),
               tooltip: "فتح في المتصفح",
@@ -189,12 +189,11 @@ class _ContentViewState extends State<ContentView> {
                   if (state is ContentLoading)
                     const Expanded(child: Center(child: CircularProgressIndicator()))
                   else ...[
-                    // FOR BOOKS: Show ONLY Platform Buttons. No chips, no description.
-                    if (isBookPage) ...[
+                    // Show ONLY Platform Buttons for final material pages. No raw text descriptions or extra chips.
+                    if (isBookOrLeafPage) ...[
                       if (platformResources.isNotEmpty) PlatformButtons(resources: platformResources)
                       else const Expanded(child: Center(child: Text("المحتوى متوفر عبر المنصات الرسمية فقط"))),
                     ] 
-                    // FOR OTHERS (Solutions, Tests without direct PDF): Show available resources
                     else ...[
                       if (platformResources.isNotEmpty) PlatformButtons(resources: platformResources),
                       if (otherResources.isNotEmpty) ResourceChips(resources: otherResources),
