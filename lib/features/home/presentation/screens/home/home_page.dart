@@ -325,7 +325,7 @@ class _HomeContent extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "إزالة الإعلانات للأبد",
+                          "Remove Ads - إزالة الإعلانات للأبد",
                           style: TextStyle(
                             color: Colors.amber.shade900,
                             fontSize: 16,
