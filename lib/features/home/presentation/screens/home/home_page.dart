@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kotabi_saudi/main.dart';
@@ -25,6 +26,33 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 2; // Home index
+  StreamSubscription<bool>? _iapSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen for ad-free status changes to show success message
+    _iapSubscription = sl<IapService>().adFreeStatusStream.listen((isAdFree) {
+      if (isAdFree && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Text("تهانينا! تم تفعيل النسخة المدفوعة بنجاح وإزالة الإعلانات."),
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _iapSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -288,66 +316,110 @@ class _HomeContent extends StatelessWidget {
 
   Widget _buildAdFreeButton() {
     return StreamBuilder<bool>(
-      stream: sl<IapService>().adFreeStatusStream,
-      initialData: sl<IapService>().isAdFree,
-      builder: (context, snapshot) {
-        if (snapshot.data == true) return const SizedBox.shrink();
+      stream: sl<IapService>().isLoadingStream,
+      initialData: false,
+      builder: (context, loadingSnapshot) {
+        final isLoading = loadingSnapshot.data ?? false;
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: InkWell(
-            onTap: () async {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Directionality(
-                    textDirection: TextDirection.rtl,
-                    child: Text("جاري إتمام الدفع..."),
-                  ),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              await sl<IapService>().buyAdRemoval();
-            },
-            borderRadius: BorderRadius.circular(15),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade100,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.amber.shade700, width: 1),
-              ),
-              child: Row(
+        return StreamBuilder<bool>(
+          stream: sl<IapService>().adFreeStatusStream,
+          initialData: sl<IapService>().isAdFree,
+          builder: (context, adFreeSnapshot) {
+            if (adFreeSnapshot.data == true) return const SizedBox.shrink();
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Stack(
                 children: [
-                  Icon(Icons.auto_awesome, color: Colors.amber.shade900),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Remove Ads - إزالة الإعلانات للأبد",
-                          style: TextStyle(
-                            color: Colors.amber.shade900,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  InkWell(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            await sl<IapService>().buyAdRemoval();
+                          },
+                    borderRadius: BorderRadius.circular(15),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 20,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orange.withValues(alpha: 0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
-                        ),
-                        const Text(
-                          "تصفح التطبيق بدون أي إزعاج مقابل 3\$ فقط",
-                          style: TextStyle(color: Colors.black54, fontSize: 12),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: const BoxDecoration(
+                              color: Colors.white24,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.block_flipped,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 15),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Remove Ads - إزالة الإعلانات للأبد",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  "تصفح التطبيق بدون أي إزعاج مقابل 3\$ فقط",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.amber.shade900,
-                    size: 16,
-                  ),
+                  if (isLoading)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black26,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                      ),
+                    ),
                 ],
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -355,26 +427,30 @@ class _HomeContent extends StatelessWidget {
 
   Widget _buildRestoreButton() {
     return StreamBuilder<bool>(
-      stream: sl<IapService>().adFreeStatusStream,
-      initialData: sl<IapService>().isAdFree,
-      builder: (context, snapshot) {
-        if (snapshot.data == true) return const SizedBox.shrink();
-        return Center(
-          child: TextButton(
-            onPressed: () async {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("جاري استعادة المشتريات..."),
-                  duration: Duration(seconds: 2),
+      stream: sl<IapService>().isLoadingStream,
+      initialData: false,
+      builder: (context, loadingSnapshot) {
+        final isLoading = loadingSnapshot.data ?? false;
+
+        return StreamBuilder<bool>(
+          stream: sl<IapService>().adFreeStatusStream,
+          initialData: sl<IapService>().isAdFree,
+          builder: (context, adFreeSnapshot) {
+            if (adFreeSnapshot.data == true) return const SizedBox.shrink();
+            return Center(
+              child: TextButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        await sl<IapService>().restorePurchases();
+                      },
+                child: Text(
+                  isLoading ? "جاري الاستعادة..." : "استعادة المشتريات",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
-              );
-              await sl<IapService>().restorePurchases();
-            },
-            child: const Text(
-              "استعادة المشتريات",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

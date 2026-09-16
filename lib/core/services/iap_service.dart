@@ -18,6 +18,9 @@ class IapService {
   final StreamController<bool> _adFreeStatusController = StreamController<bool>.broadcast();
   Stream<bool> get adFreeStatusStream => _adFreeStatusController.stream;
 
+  final StreamController<bool> _isLoadingController = StreamController<bool>.broadcast();
+  Stream<bool> get isLoadingStream => _isLoadingController.stream;
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _isAdFree = prefs.getBool('is_ad_free') ?? false;
@@ -37,8 +40,10 @@ class IapService {
     for (var purchaseDetails in purchaseDetailsList) {
       if (purchaseDetails.status == PurchaseStatus.pending) {
         dev.log('Purchase pending...');
+        _isLoadingController.add(true);
       } else if (purchaseDetails.status == PurchaseStatus.error) {
         dev.log('Purchase error: ${purchaseDetails.error}');
+        _isLoadingController.add(false);
       } else if (purchaseDetails.status == PurchaseStatus.purchased || 
                  purchaseDetails.status == PurchaseStatus.restored) {
         
@@ -50,6 +55,9 @@ class IapService {
         if (purchaseDetails.pendingCompletePurchase) {
           await _iap.completePurchase(purchaseDetails);
         }
+        _isLoadingController.add(false);
+      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
+        _isLoadingController.add(false);
       }
     }
   }
@@ -63,33 +71,49 @@ class IapService {
   }
 
   Future<void> buyAdRemoval() async {
-    final bool available = await _iap.isAvailable();
-    if (!available) {
-      dev.log('Store not available');
-      return;
-    }
+    _isLoadingController.add(true);
+    try {
+      final bool available = await _iap.isAvailable();
+      if (!available) {
+        dev.log('Store not available');
+        _isLoadingController.add(false);
+        return;
+      }
 
-    const Set<String> kIds = {removeAdsId};
-    final ProductDetailsResponse response = await _iap.queryProductDetails(kIds);
+      const Set<String> kIds = {removeAdsId};
+      final ProductDetailsResponse response = await _iap.queryProductDetails(kIds);
 
-    if (response.notFoundIDs.isNotEmpty) {
-      dev.log('Product not found: ${response.notFoundIDs}');
-    }
+      if (response.notFoundIDs.isNotEmpty) {
+        dev.log('Product not found: ${response.notFoundIDs}');
+      }
 
-    if (response.productDetails.isNotEmpty) {
-      final PurchaseParam purchaseParam = PurchaseParam(productDetails: response.productDetails.first);
-      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
-    } else {
-      dev.log('No products available to buy');
+      if (response.productDetails.isNotEmpty) {
+        final PurchaseParam purchaseParam = PurchaseParam(productDetails: response.productDetails.first);
+        await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      } else {
+        dev.log('No products available to buy');
+        _isLoadingController.add(false);
+        // On iOS, if productDetails is empty, it might be due to a sandbox issue or wrong ID
+      }
+    } catch (e) {
+      dev.log('Error buying ad removal: $e');
+      _isLoadingController.add(false);
     }
   }
 
   Future<void> restorePurchases() async {
-    await _iap.restorePurchases();
+    _isLoadingController.add(true);
+    try {
+      await _iap.restorePurchases();
+    } catch (e) {
+      dev.log('Error restoring purchases: $e');
+      _isLoadingController.add(false);
+    }
   }
 
   void dispose() {
     _subscription.cancel();
     _adFreeStatusController.close();
+    _isLoadingController.close();
   }
 }
