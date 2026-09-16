@@ -114,7 +114,7 @@ class AdService {
     _appOpenAdTimer?.cancel();
     _interstitialAdTimer?.cancel();
 
-    _appOpenAdTimer = Timer.periodic(const Duration(seconds: 40), (timer) {
+    _appOpenAdTimer = Timer.periodic(const Duration(seconds: 120), (timer) {
       if (!_isAdShowing && !IapService().isAdFree) {
         dev.log('Triggering 40-second periodic App Open ad');
         showAppOpenAdIfAvailable();
@@ -123,7 +123,7 @@ class AdService {
       }
     });
 
-    _interstitialAdTimer = Timer.periodic(const Duration(seconds: 90), (timer) {
+    _interstitialAdTimer = Timer.periodic(const Duration(seconds: 240), (timer) {
       if (!_isAdShowing && !IapService().isAdFree) {
         dev.log('Triggering 90-second periodic Interstitial ad');
         showInterstitialAd(onAdDismissed: () {});
