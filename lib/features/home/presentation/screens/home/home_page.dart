@@ -31,21 +31,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Listen for ad-free status changes to show success message
-    _iapSubscription = sl<IapService>().adFreeStatusStream.listen((isAdFree) {
-      if (isAdFree && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Directionality(
-              textDirection: TextDirection.rtl,
-              child: Text("تهانينا! تم تفعيل النسخة المدفوعة بنجاح وإزالة الإعلانات."),
-            ),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
-          ),
-        );
-      }
-    });
+    // In-app purchase success listener is now handled inside IapService 
+    // using the global navigatorKey to show success/error snackbars.
   }
 
   @override
@@ -339,65 +326,38 @@ class _HomeContent extends StatelessWidget {
                           },
                     borderRadius: BorderRadius.circular(15),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 20,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: const Color(0xFFFFF3E0),
                         borderRadius: BorderRadius.circular(15),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orange.withValues(alpha: 0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        border: Border.all(color: const Color(0xFFFFB74D), width: 1),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                              color: Colors.white24,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.block_flipped,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 15),
-                          const Expanded(
+                          Icon(Icons.block_flipped, color: Color(0xFFE65100)),
+                          SizedBox(width: 15),
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   "Remove Ads - إزالة الإعلانات للأبد",
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: Color(0xFFE65100),
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 Text(
                                   "تصفح التطبيق بدون أي إزعاج مقابل 3\$ فقط",
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
+                                  style: TextStyle(color: Colors.black54, fontSize: 12),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.arrow_forward_ios,
-                            color: Colors.white,
+                            color: Color(0xFFE65100),
                             size: 16,
                           ),
                         ],

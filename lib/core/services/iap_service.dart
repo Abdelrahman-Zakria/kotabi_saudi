@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as dev;
+import '../../main.dart';
 
 class IapService {
   static final IapService _instance = IapService._internal();
@@ -11,9 +13,12 @@ class IapService {
   final InAppPurchase _iap = InAppPurchase.instance;
   late StreamSubscription<List<PurchaseDetails>> _subscription;
   
+  // MATCHED ID WITH REFERENCE APP
   static const String removeAdsId = 'remove_ads_premium_kottabi';
+  
   bool _isAdFree = false;
   bool get isAdFree => _isAdFree;
+  bool _purchasePending = false;
 
   final StreamController<bool> _adFreeStatusController = StreamController<bool>.broadcast();
   Stream<bool> get adFreeStatusStream => _adFreeStatusController.stream;
@@ -32,32 +37,46 @@ class IapService {
     }, onDone: () {
       _subscription.cancel();
     }, onError: (error) {
-      dev.log('IAP Error: $error');
+      dev.log('IAP Global Stream Error: $error');
+      _showError('خطأ في الاتصال بمتجر آبل');
     });
   }
 
   Future<void> _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) async {
     for (var purchaseDetails in purchaseDetailsList) {
+      dev.log('IAP Event: ${purchaseDetails.productID} -> ${purchaseDetails.status}');
+      
       if (purchaseDetails.status == PurchaseStatus.pending) {
-        dev.log('Purchase pending...');
         _isLoadingController.add(true);
+        _purchasePending = true;
       } else if (purchaseDetails.status == PurchaseStatus.error) {
-        dev.log('Purchase error: ${purchaseDetails.error}');
+        dev.log('IAP Error Object: ${purchaseDetails.error}');
         _isLoadingController.add(false);
+        _purchasePending = false;
+        _showError('فشلت العملية: ${purchaseDetails.error?.message ?? "خطأ غير معروف"}');
+        if (purchaseDetails.pendingCompletePurchase) {
+          await _iap.completePurchase(purchaseDetails);
+        }
+      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
+        _isLoadingController.add(false);
+        _purchasePending = false;
+        dev.log('IAP: User canceled');
+        if (purchaseDetails.pendingCompletePurchase) {
+          await _iap.completePurchase(purchaseDetails);
+        }
       } else if (purchaseDetails.status == PurchaseStatus.purchased || 
                  purchaseDetails.status == PurchaseStatus.restored) {
         
-        dev.log('Purchase successful or restored: ${purchaseDetails.productID}');
         if (purchaseDetails.productID == removeAdsId) {
           await setAdFree(true);
+          _showSuccess('تم تفعيل النسخة الاحترافية وإزالة الإعلانات!');
         }
 
         if (purchaseDetails.pendingCompletePurchase) {
           await _iap.completePurchase(purchaseDetails);
         }
         _isLoadingController.add(false);
-      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
-        _isLoadingController.add(false);
+        _purchasePending = false;
       }
     }
   }
@@ -67,47 +86,116 @@ class IapService {
     await prefs.setBool('is_ad_free', status);
     _isAdFree = status;
     _adFreeStatusController.add(status);
-    dev.log('Ad-free status updated to: $status');
   }
 
   Future<void> buyAdRemoval() async {
+    if (_purchasePending) {
+      dev.log('IAP: Purchase already in progress, ignoring request.');
+      return;
+    }
+
     _isLoadingController.add(true);
+    dev.log('IAP: Manual Buy Request for $removeAdsId');
+
+    // Safety timeout to prevent stuck loader if Apple sheet fails to show
+    Timer(const Duration(seconds: 25), () {
+      if (_purchasePending) {
+        _isLoadingController.add(false);
+        _purchasePending = false;
+      }
+    });
+    
     try {
       final bool available = await _iap.isAvailable();
       if (!available) {
-        dev.log('Store not available');
+        dev.log('IAP: isAvailable() returned false');
+        _showError('خدمة الشراء غير متاحة حالياً على هذا الجهاز');
         _isLoadingController.add(false);
         return;
       }
 
+      dev.log('IAP: Querying $removeAdsId...');
       const Set<String> kIds = {removeAdsId};
       final ProductDetailsResponse response = await _iap.queryProductDetails(kIds);
 
-      if (response.notFoundIDs.isNotEmpty) {
-        dev.log('Product not found: ${response.notFoundIDs}');
+      if (response.error != null) {
+        dev.log('IAP Query Error: ${response.error}');
+        _showError('تعذر الاتصال بمتجر التطبيقات');
+        _isLoadingController.add(false);
+        return;
       }
 
-      if (response.productDetails.isNotEmpty) {
-        final PurchaseParam purchaseParam = PurchaseParam(productDetails: response.productDetails.first);
-        await _iap.buyNonConsumable(purchaseParam: purchaseParam);
-      } else {
-        dev.log('No products available to buy');
+      if (response.productDetails.isEmpty) {
+        dev.log('IAP Error: Product details list is empty. Not found IDs: ${response.notFoundIDs}');
+        _showError('لم يتم العثور على المنتج في المتجر. يرجى المحاولة لاحقاً.');
         _isLoadingController.add(false);
-        // On iOS, if productDetails is empty, it might be due to a sandbox issue or wrong ID
+        return;
+      }
+
+      final ProductDetails productDetails = response.productDetails.first;
+      dev.log('IAP: Product found! Price: ${productDetails.price}. Showing sheet...');
+      
+      final PurchaseParam purchaseParam = PurchaseParam(productDetails: productDetails);
+      
+      // On iOS, this triggers the native system dialog
+      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      
+    } on Exception catch (e) {
+      dev.log('IAP Exception: $e');
+      _isLoadingController.add(false);
+      _purchasePending = false;
+
+      if (e.toString().contains('storekit_duplicate_product_object')) {
+        _showError('هناك عملية شراء معلقة بالفعل. جارٍ تحديث المتجر، يرجى المحاولة مرة أخرى خلال لحظات.');
+        try {
+          await _iap.restorePurchases();
+        } catch (_) {}
+      } else {
+        _showError('حدث خطأ تقني: $e');
       }
     } catch (e) {
-      dev.log('Error buying ad removal: $e');
+      dev.log('IAP Unknown Error: $e');
       _isLoadingController.add(false);
+      _purchasePending = false;
+      _showError('حدث خطأ غير متوقع');
+    }
+  }
+
+  void _showError(String message) {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'Tajawal')),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  void _showSuccess(String message) {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, textAlign: TextAlign.right, style: const TextStyle(fontFamily: 'Tajawal')),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
   }
 
   Future<void> restorePurchases() async {
     _isLoadingController.add(true);
     try {
+      dev.log('IAP: Requesting restore...');
       await _iap.restorePurchases();
     } catch (e) {
-      dev.log('Error restoring purchases: $e');
+      dev.log('IAP Restore Error: $e');
       _isLoadingController.add(false);
+      _showError('تعذر استعادة المشتريات حالياً');
     }
   }
 

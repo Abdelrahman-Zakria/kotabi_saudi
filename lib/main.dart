@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,6 +55,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isIOS) {
+    InAppPurchaseStoreKitPlatform.enableStoreKit1();
+  }
+
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   try {
@@ -62,6 +69,8 @@ void main() async {
 
     // 2. Register background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+
 
     final prefs = await SharedPreferences.getInstance();
     sl.registerLazySingleton(() => LocalStorageService(prefs));
