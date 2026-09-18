@@ -60,6 +60,11 @@ class FcmService {
                 priority: Priority.high,
                 icon: '@mipmap/ic_launcher',
               ),
+              iOS: DarwinNotificationDetails(
+                presentAlert: true,
+                presentBadge: true,
+                presentSound: true,
+              ),
             ),
           );
         } catch (e) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -18,12 +19,24 @@ import 'package:kotabi_saudi/core/services/fcm_service.dart';
 import 'package:kotabi_saudi/core/services/ad_service.dart';
 import 'package:kotabi_saudi/core/services/iap_service.dart';
 import 'package:kotabi_saudi/core/services/review_service.dart';
-import 'package:kotabi_saudi/core/widgets/global_banner_ad.dart';
+
+// New UI & Logic Imports
+import 'package:provider/provider.dart';
+import 'package:kotabi_saudi/core/providers/books_provider.dart';
+import 'package:kotabi_saudi/core/providers/favorites_provider.dart';
+import 'package:kotabi_saudi/core/providers/premium_provider.dart';
+import 'package:kotabi_saudi/core/providers/reader_library_provider.dart';
+import 'package:kotabi_saudi/core/providers/settings_provider.dart';
+import 'package:kotabi_saudi/core/services/hostinger_remote_config_service.dart';
+import 'package:kotabi_saudi/features/new_ui/screens/main/main_shell.dart';
+import 'package:kotabi_saudi/features/new_ui/widgets/app_ad_banner.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'package:kotabi_saudi/features/home/domain/repositories/educational_repository.dart';
 import 'package:kotabi_saudi/features/home/data/repositories/educational_repository_impl.dart';
 import 'package:kotabi_saudi/features/tahderi/domain/repositories/tahderi_repository.dart';
 import 'package:kotabi_saudi/features/tahderi/data/repositories/tahderi_repository_impl.dart';
-import 'package:kotabi_saudi/features/home/presentation/screens/home/home_page.dart';
+import 'package:kotabi_saudi/features/tahderi/data/repositories/tahderi_repository_impl.dart';
 
 final sl = GetIt.instance;
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -105,6 +118,9 @@ void main() async {
 
     await Alarm.init();
     
+    // Initialize Remote Config
+    await HostingerRemoteConfigService.instance.initialize();
+
     // Initial initialization of services that don't show UI prompts immediately
     await notificationService.init();
     await fcmService.init();
@@ -184,20 +200,48 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           create: (context) => sl<EducationalRepository>(),
         ),
       ],
-      child: MaterialApp(
-        navigatorKey: navigatorKey,
-        title: 'كتبي السعودية',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        builder: (context, child) {
-          return Column(
-            children: [
-              Expanded(child: child ?? const SizedBox.shrink()),
-              const GlobalBannerAd(),
-            ],
-          );
-        },
-        home: const HomePage(),
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(
+            create: (_) => SettingsProvider()..initialize(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => FavoritesProvider()..initialize(),
+          ),
+          ChangeNotifierProvider(create: (_) => BooksProvider()),
+          ChangeNotifierProvider(
+            create: (_) => ReaderLibraryProvider()..initialize(),
+          ),
+          ChangeNotifierProvider(create: (_) => PremiumProvider()..initialize()),
+        ],
+        child: MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'كتبي السعودية',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          // RTL Arabic Support
+          locale: const Locale('ar', 'SA'),
+          supportedLocales: const [
+            Locale('ar', 'SA'),
+          ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          builder: (context, child) {
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: Column(
+                children: [
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                  const AppAdBanner(),
+                ],
+              ),
+            );
+          },
+          home: const MainShell(),
+        ),
       ),
     );
   }

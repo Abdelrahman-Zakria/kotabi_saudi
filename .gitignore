@@ -47,3 +47,5 @@ app.*.map.json
 # Secrets/Security
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+scratch/
+.artifacts/
