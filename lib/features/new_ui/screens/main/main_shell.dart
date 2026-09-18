@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:kotabi_saudi/core/new_ui/app_colors.dart';
 import 'package:kotabi_saudi/features/tahderi/presentation/screens/tahderi/tahderi_page.dart';
+import 'package:kotabi_saudi/features/new_ui/widgets/app_ad_banner.dart';
 import '../favorites/favorites_screen.dart';
 import '../home/home_screen.dart';
 import '../search/search_screen.dart';
@@ -69,65 +70,63 @@ class _MainShellState extends State<MainShell> {
                 ),
               ],
             ),
-            child: SafeArea(
-              top: false,
-              child: SizedBox(
-                height: 72, // Increased from 64
-                child: Row(
-                  children: List.generate(_items.length, (index) {
-                    final item = _items[index];
-                    final isSelected = index == _currentIndex;
-                    return Expanded(
-                      child: InkWell(
-                        onTap: () => setState(() => _currentIndex = index),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOut,
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 4, // Reduced from 6
-                            vertical: 6,   // Reduced from 8
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 4), // Reduced from 6
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.primaryVeryLight
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isSelected ? item.activeIcon : item.icon,
+            child: SizedBox(
+              height: 72,
+              child: Row(
+                children: List.generate(_items.length, (index) {
+                  final item = _items[index];
+                  final isSelected = index == _currentIndex;
+                  return Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _currentIndex = index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 6,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primaryVeryLight
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              isSelected ? item.activeIcon : item.icon,
+                              color: isSelected
+                                  ? AppColors.primaryDark
+                                  : AppColors.textLight,
+                              size: 24,
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              item.label,
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 11,
+                                fontWeight: isSelected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
                                 color: isSelected
                                     ? AppColors.primaryDark
                                     : AppColors.textLight,
-                                size: 24,
                               ),
-                              const SizedBox(height: 3),
-                              Text(
-                                item.label,
-                                style: TextStyle(
-                                  fontFamily: 'Cairo',
-                                  fontSize: 11,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                  color: isSelected
-                                      ? AppColors.primaryDark
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  }),
-                ),
+                    ),
+                  );
+                }),
               ),
             ),
           ),
+          const AppAdBanner(),
         ],
       ),
     );

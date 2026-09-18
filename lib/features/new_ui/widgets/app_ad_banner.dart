@@ -74,20 +74,15 @@ class _AppAdBannerState extends State<AppAdBanner> {
           return const SizedBox.shrink();
         }
 
-        return Material(
+        return Container(
           color: Colors.white,
-          child: SafeArea(
-            top: false,
+          width: double.infinity,
+          height: bannerAd.size.height.toDouble(),
+          child: Center(
             child: SizedBox(
+              width: bannerAd.size.width.toDouble(),
               height: bannerAd.size.height.toDouble(),
-              width: double.infinity,
-              child: Center(
-                child: SizedBox(
-                  width: bannerAd.size.width.toDouble(),
-                  height: bannerAd.size.height.toDouble(),
-                  child: AdWidget(ad: bannerAd),
-                ),
-              ),
+              child: AdWidget(ad: bannerAd),
             ),
           ),
         );

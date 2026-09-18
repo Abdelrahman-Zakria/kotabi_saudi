@@ -2,7 +2,7 @@ name: kotabi_saudi
 description: "Educational App for Saudi Curriculums"
 publish_to: 'none'
 
-version: 1.0.2+1
+version: 1.0.2+2
 
 environment:
   sdk: ^3.11.0
@@ -79,7 +79,7 @@ flutter_native_splash:
   background_image: "assets/logo.png"
   android_12:
     background_image: "assets/logo.png"
-  fullscreen: true
+  fullscreen: false
 
 flutter:
   uses-material-design: true

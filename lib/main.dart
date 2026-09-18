@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -68,6 +69,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   if (Platform.isIOS) {
     InAppPurchaseStoreKitPlatform.enableStoreKit1();
@@ -232,12 +239,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           builder: (context, child) {
             return Directionality(
               textDirection: TextDirection.rtl,
-              child: Column(
-                children: [
-                  Expanded(child: child ?? const SizedBox.shrink()),
-                  const AppAdBanner(),
-                ],
-              ),
+              child: child ?? const SizedBox.shrink(),
             );
           },
           home: const MainShell(),
