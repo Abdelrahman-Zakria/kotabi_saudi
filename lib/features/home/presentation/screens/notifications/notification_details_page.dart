@@ -3,6 +3,8 @@ import 'package:intl/intl.dart' as intl;
 import 'package:kotabi_saudi/core/theme/app_theme.dart';
 import 'package:kotabi_saudi/core/services/ad_service.dart';
 import 'package:kotabi_saudi/main.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 
 class NotificationDetailsPage extends StatefulWidget {
   final Map<String, dynamic> notification;
@@ -17,16 +19,28 @@ class _NotificationDetailsPageState extends State<NotificationDetailsPage> {
   @override
   void initState() {
     super.initState();
-    // Show App Open Ad when entering details page
-    if (sl.isRegistered<AdService>()) {
-      sl<AdService>().showAppOpenAdIfAvailable();
-    }
+    // Show ad after the screen is fully built and animation is finished
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          AdService().showInterstitialAd(onAdDismissed: () {});
+        }
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final date = DateTime.parse(widget.notification['timestamp']);
-    final formattedDate = intl.DateFormat('yyyy/MM/dd - hh:mm a').format(date);
+    String formattedDate = '';
+    try {
+      final timestamp = widget.notification['timestamp'];
+      if (timestamp != null) {
+        final date = DateTime.parse(timestamp);
+        formattedDate = intl.DateFormat('yyyy/MM/dd - hh:mm a').format(date);
+      }
+    } catch (e) {
+      debugPrint('Error formatting date: $e');
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -73,14 +87,7 @@ class _NotificationDetailsPageState extends State<NotificationDetailsPage> {
                       ],
                     ),
                     const Divider(height: 30),
-                    Text(
-                      widget.notification['body'] ?? '',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.6,
-                        color: AppTheme.textColor,
-                      ),
-                    ),
+                    _buildBodyText(widget.notification['body'] ?? ''),
                     const SizedBox(height: 20),
                     Align(
                       alignment: Alignment.centerLeft,
@@ -100,5 +107,83 @@ class _NotificationDetailsPageState extends State<NotificationDetailsPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildBodyText(String text) {
+    final urlRegExp = RegExp(
+      r'((https?:\/\/)|(www\.))[^\s]+',
+      caseSensitive: false,
+    );
+
+    final matches = urlRegExp.allMatches(text);
+    if (matches.isEmpty) {
+      return Text(
+        text,
+        style: const TextStyle(
+          fontSize: 16,
+          height: 1.6,
+          color: AppTheme.textColor,
+        ),
+      );
+    }
+
+    final List<TextSpan> spans = [];
+    int lastMatchEnd = 0;
+
+    for (final match in matches) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastMatchEnd, match.start),
+          style: const TextStyle(color: AppTheme.textColor),
+        ));
+      }
+
+      final url = match.group(0)!;
+      spans.add(TextSpan(
+        text: url,
+        style: const TextStyle(
+          color: Colors.blue,
+          decoration: TextDecoration.underline,
+        ),
+        recognizer: TapGestureRecognizer()
+          ..onTap = () => _launchUrl(url),
+      ));
+
+      lastMatchEnd = match.end;
+    }
+
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastMatchEnd),
+        style: const TextStyle(color: AppTheme.textColor),
+      ));
+    }
+
+    return RichText(
+      text: TextSpan(
+        children: spans,
+        style: const TextStyle(
+          fontSize: 16,
+          height: 1.6,
+          fontFamily: 'Cairo', // Ensure it matches the theme
+        ),
+      ),
+    );
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    String formattedUrl = urlString;
+    if (!urlString.startsWith('http')) {
+      formattedUrl = 'https://$urlString';
+    }
+    
+    final Uri url = Uri.parse(formattedUrl);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر فتح الرابط')),
+        );
+      }
+    }
   }
 }

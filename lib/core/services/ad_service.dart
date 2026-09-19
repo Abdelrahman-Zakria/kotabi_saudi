@@ -110,27 +110,8 @@ class AdService {
   }
 
   void startPeriodicAds() {
-    if (IapService().isAdFree) return;
-    _appOpenAdTimer?.cancel();
-    _interstitialAdTimer?.cancel();
-
-    _appOpenAdTimer = Timer.periodic(const Duration(minutes: 3), (timer) {
-      if (!_isAdShowing && !IapService().isAdFree) {
-        dev.log('Triggering 40-second periodic App Open ad');
-        showAppOpenAdIfAvailable();
-      } else if (IapService().isAdFree) {
-        timer.cancel();
-      }
-    });
-
-    _interstitialAdTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
-      if (!_isAdShowing && !IapService().isAdFree) {
-        dev.log('Triggering 90-second periodic Interstitial ad');
-        showInterstitialAd(onAdDismissed: () {});
-      } else if (IapService().isAdFree) {
-        timer.cancel();
-      }
-    });
+    // Periodic ads disabled to prevent UI black-screen conflicts during transitions
+    return;
   }
 
   void dispose() {

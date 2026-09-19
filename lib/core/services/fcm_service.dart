@@ -1,10 +1,11 @@
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:kotabi_saudi/main.dart';
 import 'package:kotabi_saudi/core/services/local_storage_service.dart';
-import 'package:kotabi_saudi/features/home/presentation/screens/notifications/notifications_page.dart';
+import '../../features/home/presentation/screens/notifications/notification_details_page.dart';
 
 class FcmService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -47,11 +48,18 @@ class FcmService {
         // Log to history
         await sl<LocalStorageService>().saveNotification(title, body);
 
+        final payload = json.encode({
+          'title': title,
+          'body': body,
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+
         try {
           await _localNotifications.show(
             id: notification.hashCode,
             title: title,
             body: body,
+            payload: payload,
             notificationDetails: const NotificationDetails(
               android: AndroidNotificationDetails(
                 'high_importance_channel',
@@ -76,7 +84,7 @@ class FcmService {
     // 6. Handle notification click (Background/Suspended state)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('Notification clicked! (from background)');
-      _navigateToNotifications();
+      _handleMessageNavigation(message);
     });
 
     // 7. Check if app was opened via notification (Terminated state)
@@ -85,16 +93,31 @@ class FcmService {
         debugPrint('App opened from terminated state via notification');
         // Small delay to ensure navigator is ready
         Future.delayed(const Duration(seconds: 1), () {
-          _navigateToNotifications();
+          _handleMessageNavigation(message);
         });
       }
     });
   }
 
-  void _navigateToNotifications() {
+  void _handleMessageNavigation(RemoteMessage message) {
+    final notification = message.notification;
+    if (notification == null) return;
+
+    final data = {
+      'title': notification.title ?? '',
+      'body': notification.body ?? '',
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    _navigateToNotificationDetails(data);
+  }
+
+  void _navigateToNotificationDetails(Map<String, dynamic> notificationData) {
     if (navigatorKey.currentState != null) {
       navigatorKey.currentState!.push(
-        MaterialPageRoute(builder: (_) => const NotificationsPage()),
+        MaterialPageRoute(
+          builder: (_) => NotificationDetailsPage(notification: notificationData),
+        ),
       );
     }
   }

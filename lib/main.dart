@@ -107,7 +107,6 @@ void main() async {
 
     final adService = AdService();
     adService.navigatorKey = navigatorKey;
-    // Initial initialization moved to sequenced sequence
     sl.registerLazySingleton(() => adService);
 
     final reviewService = ReviewService();
@@ -193,9 +192,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (sl.isRegistered<AdService>()) {
-        sl<AdService>().showAppOpenAdIfAvailable();
-      }
+      // Small delay to prevent conflict with notification-triggered navigation
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted && sl.isRegistered<AdService>()) {
+          sl<AdService>().showAppOpenAdIfAvailable();
+        }
+      });
     }
   }
 

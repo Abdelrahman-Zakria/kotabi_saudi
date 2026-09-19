@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -10,6 +11,7 @@ import 'package:alarm/alarm.dart';
 import 'package:kotabi_saudi/main.dart';
 import 'package:kotabi_saudi/core/services/local_storage_service.dart';
 import 'package:kotabi_saudi/features/home/presentation/screens/notifications/notifications_page.dart';
+import 'package:kotabi_saudi/features/home/presentation/screens/notifications/notification_details_page.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
@@ -31,10 +33,38 @@ class NotificationService {
       iOS: iosSettings,
     );
 
+    // Create high importance channel for Android
+    if (Platform.isAndroid) {
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'high_importance_channel',
+        'High Importance Notifications',
+        description: 'This channel is used for important notifications.',
+        importance: Importance.max,
+      );
+
+      await _notifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+    }
+
     await _notifications.initialize(
       settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        _navigateToNotifications();
+        final payload = response.payload;
+        if (payload != null && payload.isNotEmpty) {
+          // Small delay to allow the app to stabilize after tap
+          Future.delayed(const Duration(milliseconds: 500), () {
+            try {
+              final Map<String, dynamic> data = json.decode(payload);
+              _navigateToNotificationDetails(data);
+            } catch (e) {
+              debugPrint("Error parsing notification payload: $e");
+              _navigateToNotifications();
+            }
+          });
+        } else {
+          _navigateToNotifications();
+        }
       },
     );
 
@@ -61,6 +91,16 @@ class NotificationService {
     if (navigatorKey.currentState != null) {
       navigatorKey.currentState!.push(
         MaterialPageRoute(builder: (_) => const NotificationsPage()),
+      );
+    }
+  }
+
+  void _navigateToNotificationDetails(Map<String, dynamic> notificationData) {
+    if (navigatorKey.currentState != null) {
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(
+          builder: (_) => NotificationDetailsPage(notification: notificationData),
+        ),
       );
     }
   }
